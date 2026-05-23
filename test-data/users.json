@@ -1,0 +1,12 @@
+{
+  "admin": {
+    "username": "Admin",
+    "password": "admin123",
+    "role": "Admin"
+  },
+  "invalidUser": {
+    "username": "invalid-user",
+    "password": "WrongPassword123",
+    "role": "ESS"
+  }
+}

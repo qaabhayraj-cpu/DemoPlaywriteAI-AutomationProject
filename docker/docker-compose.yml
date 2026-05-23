@@ -1,0 +1,18 @@
+version: '3.8'
+services:
+  playwright:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    volumes:
+      - ../test-results:/app/test-results
+      - ../allure-results:/app/allure-results
+      - ../playwright-report:/app/playwright-report
+    environment:
+      - BASE_URL=${BASE_URL:-https://opensource-demo.orangehrmlive.com}
+      - USERNAME=${USERNAME:-Admin}
+      - PASSWORD=${PASSWORD:-admin123}
+      - TEST_ENV=${TEST_ENV:-qa}
+      - CI=true
+      - HEADLESS=true
+    command: npx playwright test ${TEST_ARGS:-}
