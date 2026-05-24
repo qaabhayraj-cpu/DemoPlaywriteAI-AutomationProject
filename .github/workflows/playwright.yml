@@ -57,9 +57,9 @@ jobs:
             --shard=${{ matrix.shard }}/3 \
             ${{ github.event.inputs.tags && format('--grep "{0}"', github.event.inputs.tags) || '' }}
         env:
-          BASE_URL: ${{ secrets.BASE_URL }}
-          USERNAME: ${{ secrets.USERNAME }}
-          PASSWORD: ${{ secrets.PASSWORD }}
+          BASE_URL: ${{ secrets.BASE_URL || 'https://opensource-demo.orangehrmlive.com' }}
+          USERNAME: ${{ secrets.USERNAME || 'Admin' }}
+          PASSWORD: ${{ secrets.PASSWORD || 'admin123' }}
           CI: true
           HEADLESS: true
       - name: Upload test results
