@@ -36,13 +36,25 @@ const emptyStringToUndefined = z.preprocess((value) => {
   return value;
 }, z.string().optional());
 
-const EnvVariables = z.object({
-  BASE_URL: z.preprocess((value) => {
-    if (typeof value === 'string' && value.trim() === '') {
-      return undefined;
-    }
+const parseUrlOrUndefined = z.preprocess((value) => {
+  if (typeof value !== 'string') {
     return value;
-  }, z.string().url()).default('https://opensource-demo.orangehrmlive.com'),
+  }
+
+  const trimmed = value.trim();
+  if (trimmed === '') {
+    return undefined;
+  }
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    return undefined;
+  }
+}, z.string().url()).default('https://opensource-demo.orangehrmlive.com');
+
+const EnvVariables = z.object({
+  BASE_URL: parseUrlOrUndefined,
   USERNAME: emptyStringToUndefined.default('Admin'),
   PASSWORD: emptyStringToUndefined.default('admin123'),
   HEADLESS: emptyStringToUndefined,
