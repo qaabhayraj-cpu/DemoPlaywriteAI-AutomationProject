@@ -45,13 +45,15 @@ export class EmployeePage extends BasePage {
   async searchByName(name: string): Promise<void> {
     await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'domcontentloaded' });
     await this.searchNameInput.fill(name);
-    await Promise.all([this.page.waitForLoadState('networkidle'), this.searchButton.click()]);
+    // Fixed: Replaced flaky 'networkidle' with 'load' state for better stability
+    await Promise.all([this.page.waitForLoadState('load'), this.searchButton.click()]);
   }
 
   async searchById(id: string): Promise<void> {
     await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'domcontentloaded' });
     await this.employeeIdInput.fill(id);
-    await Promise.all([this.page.waitForLoadState('networkidle'), this.searchButton.click()]);
+    // Fixed: Replaced flaky 'networkidle' with 'load' state for better stability
+    await Promise.all([this.page.waitForLoadState('load'), this.searchButton.click()]);
   }
 
   async getSearchResultNames(): Promise<string[]> {

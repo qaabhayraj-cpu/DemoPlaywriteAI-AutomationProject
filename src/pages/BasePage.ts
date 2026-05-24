@@ -64,11 +64,16 @@ export abstract class BasePage {
     }, { timeout: Timeouts.LONG });
   }
 
-  async softAssert(fn: () => Promise<void>): Promise<void> {
+  async softAssert(fn: () => Promise<void>, description?: string): Promise<boolean> {
     try {
       await fn();
-    } catch {
-      // soft assertion: swallow error to continue validation flow
+      return true;
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const logMsg = description ? `Soft assertion failed [${description}]: ${errorMsg}` : `Soft assertion failed: ${errorMsg}`;
+      // eslint-disable-next-line no-console
+      console.warn(`⚠️  ${logMsg}`);
+      return false;
     }
   }
 

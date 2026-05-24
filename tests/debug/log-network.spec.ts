@@ -19,6 +19,6 @@ test('log network during login', async ({ page }) => {
     page.getByRole('button', { name: 'Login' }).click(),
   ]);
 
-  // wait briefly to ensure all network activity finishes
-  await page.waitForTimeout(2000);
+  // Wait for page to fully load instead of hard waiting
+  await page.waitForLoadState('load');
 });

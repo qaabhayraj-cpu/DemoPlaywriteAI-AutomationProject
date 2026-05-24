@@ -55,6 +55,25 @@ export const test = base.extend<Fixtures>({
 
     const context = await browser.newContext({ storageState: authStatePath });
     const page = await context.newPage();
+
+    // Add response interceptor to detect and handle auth failures
+    page.on('response', async (response) => {
+      if (response.status() === 401 || response.status() === 403) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          `⚠️  Auth failure detected (${response.status()} ${response.statusText()}) — invalidating auth state at ${authStatePath}`,
+        );
+        try {
+          await fs.unlink(authStatePath);
+          // eslint-disable-next-line no-console
+          console.warn('🔄 Auth state invalidated. Global setup will regenerate on next run.');
+        } catch (error) {
+          // eslint-disable-next-line no-console
+          console.error('Failed to invalidate auth state:', error);
+        }
+      }
+    });
+
     await use(page);
     await context.close();
   },
