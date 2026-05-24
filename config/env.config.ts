@@ -38,7 +38,7 @@ const emptyStringToUndefined = z.preprocess((value) => {
 
 const parseUrlOrUndefined = z.preprocess((value) => {
   if (typeof value !== 'string') {
-    return value;
+    return undefined;
   }
 
   const trimmed = value.trim();
@@ -51,7 +51,7 @@ const parseUrlOrUndefined = z.preprocess((value) => {
   } catch {
     return undefined;
   }
-}, z.string().url()).default('https://opensource-demo.orangehrmlive.com');
+}, z.string().url().optional()).default('https://opensource-demo.orangehrmlive.com');
 
 const EnvVariables = z.object({
   BASE_URL: parseUrlOrUndefined,
