@@ -29,20 +29,32 @@ if (fs.existsSync(envFile)) {
   dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 }
 
+const emptyStringToUndefined = z.preprocess((value) => {
+  if (typeof value === 'string' && value.trim() === '') {
+    return undefined;
+  }
+  return value;
+}, z.string().optional());
+
 const EnvVariables = z.object({
-  BASE_URL: z.string().url().default('https://opensource-demo.orangehrmlive.com'),
-  USERNAME: z.string().default('Admin'),
-  PASSWORD: z.string().default('admin123'),
-  HEADLESS: z.string().optional(),
-  SLOW_MO: z.string().optional(),
-  TIMEOUT: z.string().optional(),
-  EXPECT_TIMEOUT: z.string().optional(),
-  ACTION_TIMEOUT: z.string().optional(),
-  NAVIGATION_TIMEOUT: z.string().optional(),
-  RETRIES: z.string().optional(),
-  WORKERS: z.string().optional(),
-  AUTH_STATE_PATH: z.string().default('auth.json'),
-  CLEANUP_AUTH: z.string().optional(),
+  BASE_URL: z.preprocess((value) => {
+    if (typeof value === 'string' && value.trim() === '') {
+      return undefined;
+    }
+    return value;
+  }, z.string().url()).default('https://opensource-demo.orangehrmlive.com'),
+  USERNAME: emptyStringToUndefined.default('Admin'),
+  PASSWORD: emptyStringToUndefined.default('admin123'),
+  HEADLESS: emptyStringToUndefined,
+  SLOW_MO: emptyStringToUndefined,
+  TIMEOUT: emptyStringToUndefined,
+  EXPECT_TIMEOUT: emptyStringToUndefined,
+  ACTION_TIMEOUT: emptyStringToUndefined,
+  NAVIGATION_TIMEOUT: emptyStringToUndefined,
+  RETRIES: emptyStringToUndefined,
+  WORKERS: emptyStringToUndefined,
+  AUTH_STATE_PATH: emptyStringToUndefined.default('auth.json'),
+  CLEANUP_AUTH: emptyStringToUndefined,
 });
 
 const parsedEnv = EnvVariables.parse(process.env);
