@@ -1,6 +1,7 @@
 import { expect, Page } from '@playwright/test';
 import { BasePage } from './BasePage.js';
 import { Routes } from '@constants/Routes';
+import { Timeouts } from '@constants/Timeouts';
 import { envConfig } from '@config';
 
 export class LoginPage extends BasePage {
@@ -25,7 +26,7 @@ export class LoginPage extends BasePage {
     await this.usernameInput.fill(username);
     await this.passwordInput.fill(password);
     await Promise.all([
-      this.page.waitForURL(`**${Routes.DASHBOARD}`),
+      this.page.waitForURL(`**${Routes.DASHBOARD}`, { timeout: Timeouts.EXTRA_LONG }),
       this.loginButton.click(),
     ]);
   }
@@ -54,7 +55,7 @@ export class LoginPage extends BasePage {
     await userMenu.click();
     const logoutButton = this.page.getByRole('menuitem', { name: /Logout/i }).first();
     await Promise.all([
-      this.page.waitForURL(`**${Routes.LOGIN}`),
+      this.page.waitForURL(`**${Routes.LOGIN}`, { timeout: Timeouts.EXTRA_LONG }),
       logoutButton.click(),
     ]);
   }

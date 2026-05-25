@@ -8,9 +8,17 @@ export class AuthApi {
     // The public site exposes a UI validate endpoint for session login.
     // Use form-encoded POST to authenticate and capture the session cookie as a token.
     const form = new URLSearchParams({ username, password }).toString();
-    const response = await this.client.post<Record<string, unknown>>('/web/index.php/auth/validate', form, {
-      'Content-Type': 'application/x-www-form-urlencoded',
-    });
+    const response = await this.client.post<Record<string, unknown>>(
+      '/web/index.php/auth/validate',
+      form,
+      {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      {
+        maxRedirects: 0,
+        allowStatuses: [302],
+      },
+    );
 
     if (response.status === 200 || response.status === 302) {
       const setCookie = response.headers['set-cookie'] ?? response.headers['Set-Cookie'];

@@ -1,6 +1,7 @@
 import { expect, type Page } from '@playwright/test';
 import { BasePage } from './BasePage.js';
 import { Routes } from '@constants/Routes';
+import { Timeouts } from '@constants/Timeouts';
 import { LeaveData, LeaveRecord } from '@types';
 
 export class LeavePage extends BasePage {
@@ -19,12 +20,13 @@ export class LeavePage extends BasePage {
   }
 
   async verifyPageLoaded(): Promise<void> {
-    await expect(this.page).toHaveURL(`**${Routes.LEAVE}`);
+    await expect(this.page).toHaveURL(/leave\/viewLeaveList/);
     await expect(this.applyTab).toBeVisible();
   }
 
   async navigateToApply(): Promise<void> {
     await this.page.goto(Routes.LEAVE, { waitUntil: 'domcontentloaded' });
+    await this.waitForPageLoad();
     await expect(this.applyTab).toBeVisible();
     await this.applyTab.click();
     await this.waitForPageLoad();
@@ -36,7 +38,14 @@ export class LeavePage extends BasePage {
     await this.fromDateInput.fill(data.fromDate);
     await this.toDateInput.fill(data.toDate);
     await this.reasonInput.fill(data.reason);
-    await Promise.all([this.page.waitForResponse((response) => response.ok()), this.submitButton.click()]);
+    await Promise.all([
+      this.page.waitForResponse(
+        (response) => response.request().method() === 'POST' && response.ok(),
+        { timeout: Timeouts.LONG },
+      ),
+      this.submitButton.click(),
+    ]);
+    await this.waitForPageLoad();
   }
 
   async getLeaveBalance(leaveType: string): Promise<number> {

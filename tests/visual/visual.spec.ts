@@ -68,7 +68,7 @@ test.describe('Visual Regression', () => {
     allure.description('Verify the leave page visual appearance matches the baseline');
     allure.tag('visual');
 
-    await leavePage.navigate('/web/index.php/leave/viewLeaveModule');
+    await leavePage.navigate('/web/index.php/leave/viewLeaveList');
     await expect(leavePage.page).toHaveScreenshot('leave-page.png', {
       maxDiffPixelRatio: 0.2,
       threshold: 0.2,

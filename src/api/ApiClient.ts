@@ -31,31 +31,33 @@ export class ApiClient {
     return headers;
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<ApiResponse<T>> {
+  async get<T>(endpoint: string, params?: Record<string, string>, options?: { maxRedirects?: number; allowStatuses?: number[] }): Promise<ApiResponse<T>> {
     const query = params ? new URLSearchParams(params).toString() : '';
     const url = query ? `${endpoint}?${query}` : endpoint;
-    const response = await this.request.get(url, { headers: this.getHeaders() });
-    return this.buildResponse<T>(response);
+    const response = await this.request.get(url, { headers: this.getHeaders(), maxRedirects: options?.maxRedirects });
+    return this.buildResponse<T>(response, options?.allowStatuses);
   }
 
-  async post<T>(endpoint: string, body: unknown, extraHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
+  async post<T>(endpoint: string, body: unknown, extraHeaders?: Record<string, string>, options?: { maxRedirects?: number; allowStatuses?: number[] }): Promise<ApiResponse<T>> {
     const payload = typeof body === 'string' || body instanceof Buffer ? body : JSON.stringify(body ?? {});
     const headers = { ...this.getHeaders(), ...(extraHeaders ?? {}) };
     const response = await this.request.post(endpoint, {
       headers,
       data: payload,
+      maxRedirects: options?.maxRedirects,
     });
-    return this.buildResponse<T>(response);
+    return this.buildResponse<T>(response, options?.allowStatuses);
   }
 
-  async put<T>(endpoint: string, body: unknown, extraHeaders?: Record<string, string>): Promise<ApiResponse<T>> {
+  async put<T>(endpoint: string, body: unknown, extraHeaders?: Record<string, string>, options?: { maxRedirects?: number; allowStatuses?: number[] }): Promise<ApiResponse<T>> {
     const payload = typeof body === 'string' || body instanceof Buffer ? body : JSON.stringify(body ?? {});
     const headers = { ...this.getHeaders(), ...(extraHeaders ?? {}) };
     const response = await this.request.put(endpoint, {
       headers,
       data: payload,
+      maxRedirects: options?.maxRedirects,
     });
-    return this.buildResponse<T>(response);
+    return this.buildResponse<T>(response, options?.allowStatuses);
   }
 
   async delete(endpoint: string): Promise<ApiResponse<void>> {
@@ -74,7 +76,7 @@ export class ApiClient {
     }
   }
 
-  private async buildResponse<T>(response: APIResponse): Promise<ApiResponse<T>> {
+  private async buildResponse<T>(response: APIResponse, allowStatuses: number[] = []): Promise<ApiResponse<T>> {
     const responseText = await response.text();
     let body: unknown;
 
@@ -88,7 +90,7 @@ export class ApiClient {
       }
     }
 
-    if (!response.ok()) {
+    if (!response.ok() && !allowStatuses.includes(response.status())) {
       throw new Error(`API request failed with status ${response.status()}: ${JSON.stringify(body)}`);
     }
 

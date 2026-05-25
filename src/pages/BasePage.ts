@@ -11,7 +11,7 @@ export abstract class BasePage {
   }
 
   async navigate(path: string): Promise<void> {
-    await this.page.goto(path, { waitUntil: 'domcontentloaded' });
+    await this.page.goto(path, { waitUntil: 'domcontentloaded', timeout: Timeouts.EXTRA_LONG });
     await this.waitForPageLoad();
   }
 

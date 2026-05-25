@@ -20,7 +20,7 @@ test.describe('Leave Management', () => {
     allure.description('Verify the leave entitlements page is accessible and displays core sections');
     allure.tag('smoke');
 
-    await leavePage.navigate('/web/index.php/leave/viewLeaveModule');
+    await leavePage.navigate('/web/index.php/leave/viewLeaveList');
     await leavePage.verifyPageLoaded();
   });
 
@@ -32,7 +32,7 @@ test.describe('Leave Management', () => {
     allure.description('Verify leave balances are displayed for the configured leave types');
     allure.tag('regression');
 
-    await leavePage.navigate('/web/index.php/leave/viewLeaveModule');
+    await leavePage.navigate('/web/index.php/leave/viewLeaveList');
 
     for (const leaveType of leaveTypes.slice(0, 3)) {
       const balance = await leavePage.getLeaveBalance(leaveType);

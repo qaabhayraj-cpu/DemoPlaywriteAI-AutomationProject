@@ -56,7 +56,7 @@ test.describe('Accessibility', () => {
     allure.description('Verify no critical accessibility violations exist on the leave page');
     allure.tag('a11y');
 
-    await leavePage.navigate('/web/index.php/leave/viewLeaveModule');
+    await leavePage.navigate('/web/index.php/leave/viewLeaveList');
     await leavePage.checkA11y({ tags: ['wcag2a', 'wcag2aa'] });
   });
 });

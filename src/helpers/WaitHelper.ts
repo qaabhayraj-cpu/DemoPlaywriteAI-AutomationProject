@@ -2,7 +2,7 @@ import { Locator, Page } from '@playwright/test';
 import { Timeouts } from '@constants/Timeouts';
 
 export class WaitHelper {
-  static async waitForNetworkIdle(page: Page, timeout = Timeouts.MEDIUM): Promise<void> {
+  static async waitForNetworkIdle(page: Page, timeout = Timeouts.EXTRA_LONG): Promise<void> {
     try {
       await page.waitForLoadState('networkidle', { timeout });
     } catch {

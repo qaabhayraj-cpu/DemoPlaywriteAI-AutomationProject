@@ -3,7 +3,7 @@ export const Routes = {
   DASHBOARD: '/web/index.php/dashboard/index',
   EMPLOYEE_LIST: '/web/index.php/pim/viewEmployeeList',
   ADD_EMPLOYEE: '/web/index.php/pim/addEmployee',
-  LEAVE: '/web/index.php/leave/viewLeaveModule',
+  LEAVE: '/web/index.php/leave/viewLeaveList',
   MY_LEAVE: '/web/index.php/leave/viewMyLeave',
   PROFILE: '/web/index.php/pim/viewPersonalDetails/empNumber/',
 } as const;
