@@ -1,0 +1,140 @@
+name: Smoke Tests — Daily 5:40 IST
+
+# ── Triggers ──────────────────────────────────────────────────────────────────
+on:
+  # Daily at 5:40 IST (00:10 UTC)
+  schedule:
+    - cron: '10 0 * * *'
+
+  # Manual trigger from GitHub Actions UI
+  workflow_dispatch:
+    inputs:
+      browser:
+        description: 'Browser to run smoke tests on'
+        required: false
+        default: chromium
+        type: choice
+        options: [chromium, firefox, webkit]
+      env:
+        description: 'Target environment'
+        required: false
+        default: qa
+        type: choice
+        options: [qa, staging]
+
+  # Can be called by other workflows (e.g. after a deploy)
+  workflow_call:
+    inputs:
+      browser:
+        required: false
+        default: chromium
+        type: string
+      env:
+        required: false
+        default: qa
+        type: string
+
+# ── Env ───────────────────────────────────────────────────────────────────────
+env:
+  NODE_VERSION: '20.x'
+  BROWSER:   ${{ inputs.browser || 'chromium' }}
+  TEST_ENV:  ${{ inputs.env    || 'qa' }}
+
+# ── Jobs ──────────────────────────────────────────────────────────────────────
+jobs:
+  smoke:
+    name: Smoke — ${{ inputs.browser || 'chromium' }} (${{ inputs.env || 'qa' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js ───────────────────────────────────────────────────────────
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # ── 3. Playwright browsers (cached) ──────────────────────────────────────
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ env.BROWSER }}-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-${{ env.BROWSER }}-${{ runner.os }}-
+
+      - name: Install Playwright browser — ${{ env.BROWSER }}
+        run: npx playwright install ${{ env.BROWSER }} --with-deps
+
+      # ── 4. Run smoke tests ───────────────────────────────────────────────────
+      - name: Run smoke tests
+        run: |
+          npx playwright test tests/smoke/smoke.spec.ts \
+            --project=${{ env.BROWSER }} \
+            --reporter=list,html,junit
+        env:
+          BASE_URL:  ${{ secrets.BASE_URL  || 'https://opensource-demo.orangehrmlive.com' }}
+          USERNAME:  ${{ secrets.USERNAME  || 'Admin' }}
+          PASSWORD:  ${{ secrets.PASSWORD  || 'admin123' }}
+          CI:        true
+          HEADLESS:  true
+          TEST_ENV:  ${{ env.TEST_ENV }}
+
+      # ── 5. Upload artifacts ───────────────────────────────────────────────────
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-results-${{ env.BROWSER }}-run${{ github.run_number }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
+
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-junit-${{ env.BROWSER }}-run${{ github.run_number }}
+          path: test-results/**/*.xml
+          retention-days: 14
+
+      # ── 6. GitHub Actions job summary ────────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          STATUS="${{ job.status }}"
+          EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          echo "## $EMOJI Smoke Tests — \`${{ env.BROWSER }}\` | \`${{ env.TEST_ENV }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Schedule  | Daily 5:40 IST (00:10 UTC) |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser   | \`${{ env.BROWSER }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ env.TEST_ENV }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch    | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run #     | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status    | **${STATUS}** |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📎 Full report available in the _Artifacts_ section." >> $GITHUB_STEP_SUMMARY
+
+      # ── 7. Slack notification (optional) ─────────────────────────────────────
+      - name: Notify Slack
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ job.status }}"
+          EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            -d "{
+              \"text\": \"$EMOJI *Smoke Tests* | Browser: \`${{ env.BROWSER }}\` | Env: \`${{ env.TEST_ENV }}\` | Branch: \`${{ github.ref_name }}\` | Status: *${STATUS}* | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>\"
+            }"
