@@ -1,0 +1,193 @@
+name: Performance Tests — JMeter
+
+# ── Triggers ────────────────────────────────────────────────────────────────
+on:
+  # Manual run — pick plan, threads, loops from the GitHub UI
+  workflow_dispatch:
+    inputs:
+      plan:
+        description: 'Test plan name (matches jmeter/test-plans/<name>.jmx)'
+        required: false
+        default: login
+        type: choice
+        options: [login]
+      threads:
+        description: 'Virtual users (concurrent threads)'
+        required: false
+        default: '1'
+        type: string
+      loops:
+        description: 'Iterations per user'
+        required: false
+        default: '1'
+        type: string
+      ramp_up:
+        description: 'Ramp-up period in seconds'
+        required: false
+        default: '1'
+        type: string
+
+  # Nightly scheduled run — every day at 01:00 UTC
+  schedule:
+    - cron: '0 1 * * *'
+
+  # Can also be called from other workflows (e.g. after smoke tests pass)
+  workflow_call:
+    inputs:
+      plan:
+        required: false
+        default: login
+        type: string
+      threads:
+        required: false
+        default: '1'
+        type: string
+      loops:
+        required: false
+        default: '1'
+        type: string
+
+# ── Env ──────────────────────────────────────────────────────────────────────
+env:
+  NODE_VERSION: '20.x'
+  JAVA_VERSION: '17'
+  JMETER_VERSION: '5.6.3'
+  PLAN: ${{ inputs.plan || 'login' }}
+  THREADS: ${{ inputs.threads || '1' }}
+  LOOPS: ${{ inputs.loops || '1' }}
+  RAMP_UP: ${{ inputs.ramp_up || '1' }}
+
+# ── Jobs ─────────────────────────────────────────────────────────────────────
+jobs:
+  performance:
+    name: JMeter — ${{ inputs.plan || 'login' }} (users=${{ inputs.threads || '1' }}, loops=${{ inputs.loops || '1' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node.js (needed for PDF generation via Playwright) ──────────────
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      # ── 3. Playwright Chromium (PDF engine only — no browser tests here) ───
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: playwright-chromium-${{ runner.os }}-
+
+      - name: Install Playwright Chromium
+        run: npx playwright install chromium --with-deps
+
+      # ── 4. Java (required by JMeter) ───────────────────────────────────────
+      - name: Set up Java ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      # ── 5. JMeter (cached across runs to avoid re-downloading 60 MB) ───────
+      - name: Cache JMeter ${{ env.JMETER_VERSION }}
+        id: jmeter-cache
+        uses: actions/cache@v4
+        with:
+          path: jmeter/bin
+          key: jmeter-${{ env.JMETER_VERSION }}-${{ runner.os }}
+
+      - name: Download JMeter ${{ env.JMETER_VERSION }}
+        if: steps.jmeter-cache.outputs.cache-hit != 'true'
+        run: bash jmeter/scripts/setup.sh
+
+      # ── 6. Run JMeter test + auto-generate PDF report ──────────────────────
+      - name: Run performance test — ${{ env.PLAN }}
+        run: |
+          bash jmeter/scripts/run.sh "$PLAN" \
+            -Jthreads="$THREADS" \
+            -Jloops="$LOOPS" \
+            -Jramp_up="$RAMP_UP"
+        env:
+          BASE_URL: ${{ secrets.BASE_URL || 'https://opensource-demo.orangehrmlive.com' }}
+          USERNAME: ${{ secrets.USERNAME || 'Admin' }}
+          PASSWORD: ${{ secrets.PASSWORD || 'admin123' }}
+
+      # ── 7. Upload PDF + HTML + JTL as artifacts ────────────────────────────
+      - name: Upload performance report (PDF + HTML + JTL)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: perf-report-${{ env.PLAN }}-run${{ github.run_number }}
+          path: |
+            jmeter/reports/${{ env.PLAN }}/${{ env.PLAN }}-performance-report.pdf
+            jmeter/reports/${{ env.PLAN }}/index.html
+            jmeter/reports/${{ env.PLAN }}/statistics.json
+            jmeter/results/${{ env.PLAN }}-summary.jtl
+          retention-days: 30
+          if-no-files-found: warn
+
+      # ── 8. Summary in GitHub Actions UI ────────────────────────────────────
+      - name: Write job summary
+        if: always()
+        run: |
+          JTL="jmeter/results/${PLAN}-summary.jtl"
+          STATS="jmeter/reports/${PLAN}/statistics.json"
+
+          echo "## ⚡ JMeter Performance Report — \`${PLAN}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Test plan | \`${PLAN}.jmx\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Virtual users | ${THREADS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Loops | ${LOOPS} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run # | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "$STATS" ]; then
+            AVG=$(python3 -c "import json; d=json.load(open('$STATS')); print(int(d.get('Total',{}).get('meanResTime',0)))")
+            MAX=$(python3 -c "import json; d=json.load(open('$STATS')); print(int(d.get('Total',{}).get('maxResTime',0)))")
+            ERR=$(python3 -c "import json; d=json.load(open('$STATS')); print(round(d.get('Total',{}).get('errorPct',0)*100,3))")
+            echo "| Avg response | ${AVG} ms |" >> $GITHUB_STEP_SUMMARY
+            echo "| Max response | ${MAX} ms |" >> $GITHUB_STEP_SUMMARY
+            echo "| Error rate | ${ERR}% |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "📎 **PDF report** is attached in the _Artifacts_ section of this run." >> $GITHUB_STEP_SUMMARY
+
+      # ── 9. Email report (optional — set MAIL_* secrets) ─────────────────────
+      - name: Send email report
+        if: always() && env.MAIL_HOST != ''
+        env:
+          MAIL_HOST : ${{ secrets.MAIL_HOST }}
+          MAIL_PORT : ${{ secrets.MAIL_PORT }}
+          MAIL_USER : ${{ secrets.MAIL_USER }}
+          MAIL_PASS : ${{ secrets.MAIL_PASS }}
+          MAIL_TO   : ${{ secrets.MAIL_TO || 'qaabhayraj@gmail.com' }}
+          MAIL_FROM : ${{ secrets.MAIL_FROM }}
+          CI_RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node jmeter/scripts/send-report-email.mjs "$PLAN"
+
+      # ── 10. Slack notification (optional — set SLACK_WEBHOOK_URL secret) ───
+      - name: Notify Slack
+        if: always() && env.SLACK_WEBHOOK_URL != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          STATUS="${{ job.status }}"
+          EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          curl -s -X POST "$SLACK_WEBHOOK_URL" \
+            -H 'Content-type: application/json' \
+            -d "{
+              \"text\": \"$EMOJI *JMeter Performance* | Plan: \`${PLAN}\` | Users: ${THREADS} | Branch: \`${{ github.ref_name }}\` | Status: *${STATUS}* | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>\"
+            }"

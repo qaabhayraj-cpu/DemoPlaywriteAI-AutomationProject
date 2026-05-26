@@ -11,3 +11,8 @@ visual-baselines/**/*.png
 *.snap
 npm-debug.log
 .DS_Store
+
+# JMeter
+jmeter/bin/
+jmeter/results/
+jmeter/reports/

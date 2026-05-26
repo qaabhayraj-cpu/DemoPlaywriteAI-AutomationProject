@@ -45,7 +45,7 @@ export default defineConfig({
     navigationTimeout: envConfig.navigationTimeout,
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
     locale: 'en-US',
     timezoneId: 'America/New_York',
     viewport: { width: 1280, height: 720 },

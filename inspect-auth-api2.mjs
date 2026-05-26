@@ -1,0 +1,12 @@
+import { request } from '@playwright/test';
+const api = await request.newContext({ baseURL: 'https://opensource-demo.orangehrmlive.com' });
+const form = new URLSearchParams({ username: 'Admin', password: 'admin123' }).toString();
+const response = await api.post('/web/index.php/auth/validate', { data: form, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, maxRedirects: 0 });
+const headers = response.headers();
+console.log('status', response.status());
+console.log('headers', headers);
+const setCookie = headers['set-cookie'] ?? headers['Set-Cookie'];
+console.log('setCookie', setCookie);
+const token = Array.isArray(setCookie) ? setCookie[0] : (setCookie ?? '');
+console.log('token', token);
+await api.dispose();

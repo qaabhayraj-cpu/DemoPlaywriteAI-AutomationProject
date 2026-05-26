@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp /tmp/inspect_login_network.mjs /Users/abhayraj/DemoPlaywriteAI-AutomationProject/inspect-network-login-tmp.mjs)",
+      "Bash(node inspect-network-login-tmp.mjs)",
+      "Bash(pip3 show *)",
+      "Bash(pip3 install *)",
+      "Bash(node jmeter/scripts/generate-pdf.mjs login)",
+      "Bash(open /Users/abhayraj/DemoPlaywriteAI-AutomationProject/jmeter/reports/login/login-performance-report.pdf)",
+      "Bash(bash jmeter/scripts/run.sh login)",
+      "Bash(npm install *)",
+      "Bash(git add *)"
+    ]
+  }
+}

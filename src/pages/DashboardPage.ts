@@ -1,6 +1,5 @@
-import { expect, type Page, Locator } from '@playwright/test';
+import { expect, type Page } from '@playwright/test';
 import { BasePage } from './BasePage.js';
-import { Routes } from '@constants/Routes';
 
 export class DashboardPage extends BasePage {
   readonly welcomeMessage = this.page.getByRole('heading', { level: 6 });
@@ -23,12 +22,22 @@ export class DashboardPage extends BasePage {
   }
 
   async getAllMenuLabels(): Promise<string[]> {
+    // On mobile the nav is collapsed behind a hamburger — open it only when links are not yet visible
+    const firstNavLink = this.page.getByRole('link', { name: 'Admin' });
+    if (!await firstNavLink.isVisible()) {
+      const hamburger = this.page.locator('.oxd-main-menu-button');
+      if (await hamburger.isVisible()) {
+        await hamburger.click();
+        await firstNavLink.waitFor({ state: 'visible', timeout: 5000 });
+      }
+    }
+
     const items = this.page.getByRole('link').filter({ hasText: /Admin|PIM|Leave|Time|Recruitment|My Info|Performance|Directory|Maintenance/ });
     const labels: string[] = [];
     const count = await items.count();
 
     for (let index = 0; index < count; index += 1) {
-      labels.push((await items.nth(index).innerText()).trim());
+      labels.push(((await items.nth(index).textContent()) ?? '').trim());
     }
 
     return labels;

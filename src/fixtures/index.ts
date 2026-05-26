@@ -1,5 +1,4 @@
-import { test as base, expect, type APIRequestContext, type Browser, type Page } from '@playwright/test';
-import { allure as playwrightAllure } from 'allure-playwright';
+import { test as base, expect, type Page } from '@playwright/test';
 import { AuthApi } from '@api/endpoints/AuthApi';
 import { EmployeeApi } from '@api/endpoints/EmployeeApi';
 import { ApiClient } from '@api/ApiClient';
@@ -12,8 +11,8 @@ import { NavigationMenu } from '@components/NavigationMenu';
 import { TopBar } from '@components/TopBar';
 import { DataFactory } from '@helpers/DataFactory';
 import { envConfig } from '@config';
-import users from '../../test-data/users.json' assert { type: 'json' };
-import leaveTypes from '../../test-data/leave-types.json' assert { type: 'json' };
+import users from '../../test-data/users.json' with { type: 'json' };
+import leaveTypes from '../../test-data/leave-types.json' with { type: 'json' };
 
 export interface Fixtures {
   loginPage: LoginPage;
@@ -34,12 +33,6 @@ export interface Fixtures {
   authenticatedPage: Page;
 }
 
-declare global {
-  var allure: typeof playwrightAllure;
-}
-
-globalThis.allure = globalThis.allure ?? playwrightAllure;
-
 export const test = base.extend<Fixtures>({
   authenticatedPage: async ({ browser }, use) => {
     const fs = await import('fs/promises');
@@ -56,7 +49,6 @@ export const test = base.extend<Fixtures>({
     const context = await browser.newContext({ storageState: authStatePath });
     const page = await context.newPage();
 
-    // Add response interceptor to detect and handle auth failures
     page.on('response', async (response) => {
       if (response.status() === 401 || response.status() === 403) {
         // eslint-disable-next-line no-console
@@ -107,7 +99,6 @@ export const test = base.extend<Fixtures>({
   },
 
   apiClient: async ({ request }, use) => {
-    // Try to reuse auth.json created by global setup, else perform a UI login to get cookies.
     const client = new ApiClient(request);
     const fs = await import('fs/promises');
     let cookieHeader = '';
@@ -115,10 +106,9 @@ export const test = base.extend<Fixtures>({
       const data = await fs.readFile('auth.json', 'utf8');
       const state = JSON.parse(data);
       const cookies = state.cookies ?? [];
-      cookieHeader = cookies.map((c: any) => `${c.name}=${c.value}`).join('; ');
+      cookieHeader = cookies.map((c: { name: string; value: string }) => `${c.name}=${c.value}`).join('; ');
     } catch {
-      // fallback: open a browser context and log in to obtain cookies
-      // we cannot import browser here; tests that need API should call authApi.login instead
+      // no auth.json — tests that need auth should call authApi.login directly
     }
 
     if (cookieHeader) {
