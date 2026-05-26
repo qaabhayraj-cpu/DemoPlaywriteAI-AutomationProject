@@ -6,6 +6,7 @@
 [![Node](https://img.shields.io/badge/Node-20.x-green?style=flat-square&logo=node.js)](https://nodejs.org)
 [![Playwright](https://img.shields.io/badge/Playwright-v1.57.0-blue?style=flat-square&logo=playwright)](https://playwright.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-Strict-orange?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
+[![JMeter](https://img.shields.io/badge/JMeter-5.6.3-red?style=flat-square&logo=apachejmeter)](https://jmeter.apache.org)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 **Enterprise-grade end-to-end automation framework** for OrangeHRM using Playwright, TypeScript, and modern testing best practices.
@@ -23,6 +24,7 @@
 - [📦 Installation](#-installation)
 - [⚙️ Configuration](#️-configuration)
 - [🧪 Testing](#-testing-modes)
+- [⚡ Performance Testing](#-performance-testing)
 - [📊 Reports & Analytics](#-reports--analytics)
 - [🏗️ Project Structure](#-project-structure)
 - [🚀 Running Tests](#-running-tests)
@@ -47,6 +49,8 @@
 ✅ **TypeScript Strict Mode** — Full type safety for enterprise reliability  
 ✅ **Data Factory Pattern** — Faker.js for realistic test data  
 ✅ **API Testing** — Dedicated REST API client with schema validation  
+✅ **Performance Testing** — JMeter load tests with PDF + HTML reports and email/Slack notifications  
+✅ **Smoke Tests** — Fast critical-path tests mirrored by JMeter performance suite  
 
 ---
 
@@ -61,6 +65,7 @@
 | **axe-core** | ^4.11.3 | Accessibility testing |
 | **Faker.js** | ^8.0.2 | Test data generation |
 | **Zod** | ^4.4.3 | Schema validation |
+| **Apache JMeter** | 5.6.3 | Performance & load testing |
 | **Docker** | Latest | Containerized execution |
 
 ---
@@ -73,7 +78,7 @@ Ensure you have the following installed on your system:
 
 - **Node.js** ≥ 20.0.0 ([Download](https://nodejs.org/))
 - **npm** ≥ 9.0.0 (comes with Node.js)
-- **Java** ≥ 11.0.0 (required for Allure CLI) ([Download](https://www.oracle.com/java/technologies/downloads/))
+- **Java** ≥ 11.0.0 (required for Allure CLI and JMeter) ([Download](https://www.oracle.com/java/technologies/downloads/))
 - **Git** (for cloning the repository)
 - **Docker** (optional, for containerized testing)
 
@@ -219,6 +224,18 @@ npm run test:network
 npm run test:update-snapshots
 ```
 
+### Smoke Tests
+
+```bash
+# Run the fast smoke suite (login + dashboard critical path)
+npm run test:smoke
+
+# Or directly
+npx playwright test tests/smoke/smoke.spec.ts
+```
+
+---
+
 ### Headed Mode (See Browser)
 
 ```bash
@@ -251,6 +268,188 @@ npm run test:ui
 npm run test:shard:1    # Shard 1/3
 npm run test:shard:2    # Shard 2/3
 npm run test:shard:3    # Shard 3/3
+```
+
+---
+
+## ⚡ Performance Testing
+
+Performance testing uses **Apache JMeter 5.6.3** to simulate concurrent users against OrangeHRM and automatically generates a professional PDF report plus an interactive HTML dashboard.
+
+### How It Works
+
+```
+jmeter/test-plans/login.jmx   ← JMeter test plan (the "what to run")
+        │
+        ▼
+bash jmeter/scripts/run.sh    ← Orchestration script
+        │
+        ├── Runs JMeter in headless mode (-n flag)
+        ├── Writes raw results → jmeter/results/<plan>-summary.jtl
+        ├── Generates HTML dashboard → jmeter/reports/<plan>/index.html
+        └── Auto-generates PDF report → jmeter/reports/<plan>/<plan>-performance-report.pdf
+```
+
+### Prerequisites
+
+- **Java 8+** must be installed (`java -version` to verify)
+- **Node.js 20+** for PDF generation
+- JMeter is downloaded automatically by the setup script
+
+### Step 1 — Install JMeter (one-time)
+
+```bash
+# Downloads Apache JMeter 5.6.3 into jmeter/bin/ (~60 MB)
+npm run perf:setup
+```
+
+This runs [jmeter/scripts/setup.sh](jmeter/scripts/setup.sh) which:
+1. Verifies Java is installed
+2. Downloads JMeter 5.6.3 from the Apache CDN
+3. Extracts it to `jmeter/bin/apache-jmeter-5.6.3/`
+
+> If JMeter is already installed system-wide, the setup script is skipped and the system binary is used automatically.
+
+### Step 2 — Run a Test Plan
+
+```bash
+# Run the login performance test (default: 1 user, 1 loop, 1s ramp-up)
+npm run perf:login
+
+# Custom load: 10 concurrent users, 5 loops, 30s ramp-up
+bash jmeter/scripts/run.sh login -Jthreads=10 -Jloops=5 -Jramp_up=30
+```
+
+#### Available Parameters
+
+| Parameter | Flag | Default | Description |
+|---|---|---|---|
+| Virtual users | `-Jthreads=N` | `1` | Number of concurrent simulated users |
+| Iterations | `-Jloops=N` | `1` | How many times each user repeats the flow |
+| Ramp-up | `-Jramp_up=N` | `1` | Seconds to reach full thread count (gradual load) |
+| Host | `-JHOST=host` | `opensource-demo.orangehrmlive.com` | Target server hostname |
+| Protocol | `-JPROTOCOL=https` | `https` | HTTP or HTTPS |
+
+**Example load profiles:**
+
+```bash
+# Smoke — verify single user works
+bash jmeter/scripts/run.sh login -Jthreads=1 -Jloops=1
+
+# Baseline — 5 users, 10 iterations
+bash jmeter/scripts/run.sh login -Jthreads=5 -Jloops=10 -Jramp_up=10
+
+# Stress — 50 concurrent users, 20 loops, 60s ramp-up
+bash jmeter/scripts/run.sh login -Jthreads=50 -Jloops=20 -Jramp_up=60
+```
+
+### Step 3 — View Reports
+
+```bash
+# Open the interactive HTML dashboard in your browser
+npm run perf:report:login
+
+# Regenerate the PDF report from existing results
+npm run perf:pdf
+```
+
+### Understanding the Results
+
+#### Output Files
+
+| File | Description |
+|---|---|
+| `jmeter/results/login-summary.jtl` | Raw CSV results — one row per request, contains timestamp, response time, status, bytes, latency, etc. |
+| `jmeter/reports/login/index.html` | Interactive HTML dashboard with charts: response times, throughput, error rates, percentiles |
+| `jmeter/reports/login/statistics.json` | Machine-readable summary used by CI to post metrics to GitHub Actions job summary |
+| `jmeter/reports/login/login-performance-report.pdf` | Professional PDF report for stakeholder sharing — includes all charts and a summary table |
+
+#### Key Metrics Explained
+
+| Metric | What It Means | Target |
+|---|---|---|
+| **Average Response Time** | Mean time (ms) to get a complete HTTP response | < 2,000 ms |
+| **90th Percentile (P90)** | 90% of requests completed within this time — a better real-world measure than average | < 3,000 ms |
+| **99th Percentile (P99)** | Worst-case time experienced by 1% of users | < 5,000 ms |
+| **Throughput** | Requests per second the server handled | As high as possible |
+| **Error Rate** | Percentage of requests that returned HTTP 4xx/5xx | < 1% |
+| **Latency** | Time until the first byte arrives from the server | < 500 ms |
+
+#### What the Login Test Plan Does
+
+The [login.jmx](jmeter/test-plans/login.jmx) plan runs the following HTTP requests in sequence, exactly mirroring the smoke test flow:
+
+1. **GET** `/web/index.php/auth/login` — Load the login page
+2. **POST** `/web/index.php/auth/validateCredentials` — Submit credentials (Admin / admin123)
+3. **GET** `/web/index.php/dashboard/index` — Verify dashboard loads after login
+4. **GET** `/web/index.php/auth/logout` — Clean logout
+
+Each virtual user runs this full sequence independently and concurrently.
+
+### CI/CD Integration
+
+The [.github/workflows/performance.yml](.github/workflows/performance.yml) workflow runs performance tests on:
+
+- **Nightly schedule** — every day at 01:00 UTC automatically
+- **Manual trigger** — run from the GitHub Actions UI with custom `threads`, `loops`, and `ramp_up` inputs
+- **Workflow call** — can be triggered by other workflows (e.g. after smoke tests pass)
+
+```yaml
+# Trigger manually from GitHub Actions UI:
+# Actions → Performance Tests — JMeter → Run workflow
+# Fill in: plan=login, threads=5, loops=3, ramp_up=10
+```
+
+After each run, the workflow:
+1. Uploads PDF + HTML dashboard + JTL file as downloadable artifacts (retained 30 days)
+2. Posts a metrics summary table directly into the GitHub Actions job summary
+3. Sends an email report (if `MAIL_*` secrets are configured)
+4. Posts a Slack notification (if `SLACK_WEBHOOK_URL` secret is configured)
+
+#### GitHub Actions Secrets for Performance CI
+
+| Secret | Required | Description |
+|---|---|---|
+| `BASE_URL` | No | Target URL — defaults to the OrangeHRM demo site |
+| `USERNAME` | No | Login username — defaults to `Admin` |
+| `PASSWORD` | No | Login password — defaults to `admin123` |
+| `MAIL_HOST` | Optional | SMTP host for email reports |
+| `MAIL_PORT` | Optional | SMTP port (e.g. `587`) |
+| `MAIL_USER` | Optional | SMTP username |
+| `MAIL_PASS` | Optional | SMTP password |
+| `MAIL_TO` | Optional | Recipient email address |
+| `SLACK_WEBHOOK_URL` | Optional | Slack incoming webhook URL for notifications |
+
+### Email Report (Local)
+
+```bash
+# Set env vars, then send the report email manually
+MAIL_HOST=smtp.gmail.com MAIL_PORT=587 \
+MAIL_USER=you@gmail.com MAIL_PASS=apppassword \
+MAIL_TO=team@company.com \
+npm run perf:email
+```
+
+### Performance Test File Structure
+
+```
+jmeter/
+├── bin/                          # JMeter binary (created by setup.sh, git-ignored)
+│   └── apache-jmeter-5.6.3/
+├── test-plans/
+│   └── login.jmx                 # Login flow performance test plan
+├── scripts/
+│   ├── setup.sh                  # One-time JMeter installer
+│   ├── run.sh                    # Test runner + report orchestrator
+│   ├── generate-pdf.mjs          # Converts HTML dashboard to PDF via Playwright
+│   └── send-report-email.mjs     # Sends PDF report via SMTP
+├── results/                      # Raw JTL files (git-ignored)
+│   └── login-summary.jtl
+└── reports/                      # Generated reports (git-ignored)
+    └── login/
+        ├── index.html            # Interactive HTML dashboard
+        ├── statistics.json       # Machine-readable summary
+        └── login-performance-report.pdf
 ```
 
 ---
@@ -325,6 +524,8 @@ DemoPlaywriteAI-AutomationProject/
 │   └── types/                 # TypeScript interfaces
 │       └── index.ts
 ├── 📁 tests/
+│   ├── smoke/                 # Smoke tests — critical path, fast
+│   │   └── smoke.spec.ts
 │   ├── auth/                  # Authentication tests
 │   │   └── login.spec.ts
 │   ├── dashboard/             # Dashboard tests
@@ -342,6 +543,16 @@ DemoPlaywriteAI-AutomationProject/
 │       ├── qa.env
 │       └── staging.env
 ├── 📁 test-data/              # Static test data (JSON fixtures)
+├── 📁 jmeter/                 # Performance testing (JMeter)
+│   ├── test-plans/           # JMX test plans
+│   │   └── login.jmx
+│   ├── scripts/              # Run, setup, PDF, email scripts
+│   │   ├── setup.sh
+│   │   ├── run.sh
+│   │   ├── generate-pdf.mjs
+│   │   └── send-report-email.mjs
+│   ├── results/              # Raw JTL output (git-ignored)
+│   └── reports/              # HTML + PDF reports (git-ignored)
 ├── 📁 reporters/              # Custom reporters
 │   └── CustomSlackReporter.ts
 ├── 📁 scripts/                # CI/CD utility scripts
@@ -621,6 +832,40 @@ ACTION_TIMEOUT=10000
 
 ```bash
 npm run typecheck
+```
+
+#### Issue: "ERROR: JMeter not found. Run: bash jmeter/scripts/setup.sh"
+
+**Solution:** JMeter has not been downloaded yet. Run the one-time setup:
+
+```bash
+npm run perf:setup
+```
+
+#### Issue: "ERROR: Java is required but not found"
+
+**Solution:** Install Java 8 or higher before running JMeter:
+
+- macOS: `brew install openjdk@17`
+- Ubuntu/Debian: `sudo apt-get install -y openjdk-17-jre`
+- Verify: `java -version`
+
+#### Issue: JMeter HTML report fails with "Output folder is not empty"
+
+**Solution:** The `run.sh` script clears stale reports automatically. If you see this manually, delete the folder:
+
+```bash
+rm -rf jmeter/reports/login
+npm run perf:login
+```
+
+#### Issue: PDF report not generated
+
+**Solution:** PDF generation requires Node.js and the Playwright Chromium binary:
+
+```bash
+npx playwright install chromium
+npm run perf:pdf
 ```
 
 ---
