@@ -9,7 +9,11 @@
       "Bash(open /Users/abhayraj/DemoPlaywriteAI-AutomationProject/jmeter/reports/login/login-performance-report.pdf)",
       "Bash(bash jmeter/scripts/run.sh login)",
       "Bash(npm install *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(node presentations/generate-pdfs.mjs)",
+      "Bash(git rm *)"
     ]
   }
 }
