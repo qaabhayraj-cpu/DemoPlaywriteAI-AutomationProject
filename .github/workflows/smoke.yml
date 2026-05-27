@@ -40,6 +40,12 @@ on:
         default: qa
         type: string
 
+# ── Permissions (needed for GitHub Pages deployment) ──────────────────────────
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 # ── Env ───────────────────────────────────────────────────────────────────────
 env:
   NODE_VERSION: '20.x'
@@ -98,16 +104,20 @@ jobs:
         if: always()
         run: npm run report:allure
 
-      # ── 6. Upload artifacts ───────────────────────────────────────────────────
-      - name: Upload Playwright HTML report
+      # ── 6. Deploy Allure report to GitHub Pages ───────────────────────────────
+      # Each run gets its own URL:
+      # https://qaabhayraj-cpu.github.io/DemoPlaywriteAI-AutomationProject/smoke/run-<N>/
+      - name: Deploy Allure report to GitHub Pages
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          name: smoke-playwright-report-${{ env.BROWSER }}-run${{ github.run_number }}
-          path: playwright-report/
-          retention-days: 14
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: allure-report
+          destination_dir: smoke/run-${{ github.run_number }}
+          keep_files: true
 
-      - name: Upload Allure report
+      # ── 7. Upload artifacts (backup) ─────────────────────────────────────────
+      - name: Upload Allure report artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -123,93 +133,32 @@ jobs:
           path: test-results/
           retention-days: 14
 
-      # ── 7. GitHub Actions job summary ────────────────────────────────────────
+      # ── 8. GitHub Actions job summary with clickable report URL ──────────────
       - name: Write job summary
         if: always()
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          RUN_TIME=$(date '+%Y-%m-%d %H:%M:%S UTC')
+          REPORT_URL="https://qaabhayraj-cpu.github.io/DemoPlaywriteAI-AutomationProject/smoke/run-${{ github.run_number }}/"
+
           echo "## $EMOJI Smoke Tests — \`${{ env.BROWSER }}\` | \`${{ env.TEST_ENV }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Schedule  | Daily 12:25 PM IST (06:55 UTC) |" >> $GITHUB_STEP_SUMMARY
-          echo "| Browser   | \`${{ env.BROWSER }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Environment | \`${{ env.TEST_ENV }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Branch    | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Run #     | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Status    | **${STATUS}** |" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 [Open Allure Report]($REPORT_URL)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📎 Full Allure report available in the _Artifacts_ section." >> $GITHUB_STEP_SUMMARY
+          echo "> **URL:** \`$REPORT_URL\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter   | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Status      | **${STATUS}** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run Time    | $RUN_TIME |" >> $GITHUB_STEP_SUMMARY
+          echo "| Browser     | \`${{ env.BROWSER }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Environment | \`${{ env.TEST_ENV }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch      | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run #       | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered   | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
 
-      # ── 8. Zip Allure report for email attachment ────────────────────────────
-      - name: Zip Allure report
-        if: always()
-        run: |
-          zip -r allure-report.zip allure-report/
-          echo "📦 Allure report zipped: $(du -sh allure-report.zip | cut -f1)"
-
-      # ── 9. Email report with Allure zip attached ──────────────────────────────
-      - name: Send email report
-        if: always()
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: smtp.gmail.com
-          server_port: 465
-          secure: true
-          username: ${{ secrets.MAIL_USERNAME }}
-          password: ${{ secrets.MAIL_PASSWORD }}
-          to: ${{ secrets.SMOKE_REPORT_RECIPIENTS || 'qaabhayraj@gmail.com' }}
-          from: QA Automation <${{ secrets.MAIL_USERNAME }}>
-          subject: "${{ job.status == 'success' && '✅' || '❌' }} Smoke Tests — ${{ env.BROWSER }} | ${{ env.TEST_ENV }} | Run #${{ github.run_number }}"
-          html_body: |
-            <!DOCTYPE html>
-            <html>
-            <body style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;color:#333;">
-              <h2 style="border-bottom:2px solid ${{ job.status == 'success' && '#28a745' || '#dc3545' }};padding-bottom:10px;">
-                ${{ job.status == 'success' && '✅ Smoke Tests Passed' || '❌ Smoke Tests Failed' }}
-              </h2>
-              <table style="width:100%;border-collapse:collapse;margin:20px 0;">
-                <tr style="background:#f8f9fa;">
-                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Status</td>
-                  <td style="padding:10px;border:1px solid #dee2e6;color:${{ job.status == 'success' && '#28a745' || '#dc3545' }};font-weight:bold;">${{ job.status }}</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Browser</td>
-                  <td style="padding:10px;border:1px solid #dee2e6;">${{ env.BROWSER }}</td>
-                </tr>
-                <tr style="background:#f8f9fa;">
-                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Environment</td>
-                  <td style="padding:10px;border:1px solid #dee2e6;">${{ env.TEST_ENV }}</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Branch</td>
-                  <td style="padding:10px;border:1px solid #dee2e6;">${{ github.ref_name }}</td>
-                </tr>
-                <tr style="background:#f8f9fa;">
-                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Run #</td>
-                  <td style="padding:10px;border:1px solid #dee2e6;">${{ github.run_number }}</td>
-                </tr>
-                <tr>
-                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Triggered by</td>
-                  <td style="padding:10px;border:1px solid #dee2e6;">${{ github.event_name }}</td>
-                </tr>
-              </table>
-              <div style="margin:20px 0;">
-                <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                   style="background:#0366d6;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;font-weight:bold;">
-                  📊 View Full Allure Report & Artifacts
-                </a>
-              </div>
-              <p style="color:#6c757d;font-size:12px;margin-top:30px;border-top:1px solid #dee2e6;padding-top:10px;">
-                📎 <strong>allure-report.zip</strong> is attached to this email — open index.html inside to view the full interactive report.<br/>
-                This email was sent automatically by GitHub Actions · ${{ github.repository }}
-              </p>
-            </body>
-            </html>
-          attachments: allure-report.zip
-
-      # ── 10. Slack notification (optional) ────────────────────────────────────
+      # ── 9. Slack notification with report link (optional) ────────────────────
       - name: Notify Slack
         if: always() && env.SLACK_WEBHOOK_URL != ''
         env:
@@ -217,8 +166,9 @@ jobs:
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          REPORT_URL="https://qaabhayraj-cpu.github.io/DemoPlaywriteAI-AutomationProject/smoke/run-${{ github.run_number }}/"
           curl -s -X POST "$SLACK_WEBHOOK_URL" \
             -H 'Content-type: application/json' \
             -d "{
-              \"text\": \"$EMOJI *Smoke Tests* | Browser: \`${{ env.BROWSER }}\` | Env: \`${{ env.TEST_ENV }}\` | Branch: \`${{ github.ref_name }}\` | Status: *${STATUS}* | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Report>\"
+              \"text\": \"$EMOJI *Smoke Tests* | Browser: \`${{ env.BROWSER }}\` | Env: \`${{ env.TEST_ENV }}\` | Branch: \`${{ github.ref_name }}\` | Status: *${STATUS}* | <${REPORT_URL}|📊 Open Allure Report>\"
             }"
