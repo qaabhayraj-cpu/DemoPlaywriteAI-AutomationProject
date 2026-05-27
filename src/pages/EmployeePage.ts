@@ -15,7 +15,7 @@ export class EmployeePage extends BasePage {
   readonly resetButton = this.page.getByRole('button', { name: 'Reset' });
   readonly searchNameInput = this.page.locator('.oxd-input-group:has-text("Employee Name") input').first();
   readonly recordCountText = this.page.getByText(/Record\(s\) Found|Records Found/);
-  readonly noRecordsText = this.page.getByText('No Records Found');
+  readonly noRecordsText = this.page.getByText('No Records Found').first();
   readonly table = this.page.getByRole('table');
 
   constructor(page: Page) {
@@ -28,14 +28,16 @@ export class EmployeePage extends BasePage {
   }
 
   async addEmployee(data: EmployeeData): Promise<string> {
-    await this.page.goto(Routes.ADD_EMPLOYEE, { waitUntil: 'domcontentloaded' });
+    await this.page.goto(Routes.ADD_EMPLOYEE, { waitUntil: 'load' });
     await this.waitForPageLoad();
+    await this.page.locator('.oxd-form-loader').waitFor({ state: 'hidden', timeout: Timeouts.EXTRA_LONG }).catch(() => {});
     await expect(this.firstNameInput).toBeVisible();
     await expect(this.employeeIdInput).toBeVisible();
 
     await this.firstNameInput.fill(data.firstName);
     await this.lastNameInput.fill(data.lastName);
     await this.employeeIdInput.fill(data.employeeId);
+    await this.page.locator('.oxd-form-loader').waitFor({ state: 'hidden', timeout: Timeouts.EXTRA_LONG }).catch(() => {});
     await Promise.all([
       this.page.waitForURL(/pim\/viewPersonalDetails/, { timeout: Timeouts.EXTRA_LONG }),
       this.saveButton.click(),
@@ -45,7 +47,7 @@ export class EmployeePage extends BasePage {
   }
 
   async searchByName(name: string): Promise<void> {
-    await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'domcontentloaded' });
+    await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'load' });
     await this.waitForPageLoad();
     await expect(this.searchNameInput).toBeVisible();
     await this.searchNameInput.fill(name);
@@ -60,7 +62,7 @@ export class EmployeePage extends BasePage {
   }
 
   async searchById(id: string): Promise<void> {
-    await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'domcontentloaded' });
+    await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'load' });
     await this.waitForPageLoad();
     await expect(this.employeeIdInput).toBeVisible();
     await this.employeeIdInput.fill(id);
@@ -76,7 +78,12 @@ export class EmployeePage extends BasePage {
 
   async getSearchResultNames(): Promise<string[]> {
     const rows = this.page.locator('div[role="row"]');
-    await rows.nth(1).waitFor({ state: 'visible', timeout: Timeouts.EXTRA_LONG });
+    // Wait for either a data row or the no-results indicator
+    await Promise.race([
+      rows.nth(1).waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
+      this.noRecordsText.waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
+    ]);
+    if (await this.noRecordsText.isVisible()) return [];
     const names: string[] = [];
     const rowCount = await rows.count();
 
@@ -119,9 +126,19 @@ export class EmployeePage extends BasePage {
   async editFirstName(employeeId: string, newName: string): Promise<void> {
     await this.searchById(employeeId);
     const editButton = this.page.getByRole('button', { name: 'Edit' }).first();
-    await editButton.click();
+    await Promise.all([
+      this.page.waitForURL(/pim\/viewPersonalDetails/, { timeout: Timeouts.EXTRA_LONG }),
+      editButton.click(),
+    ]);
+    await this.page.locator('.oxd-form-loader').waitFor({ state: 'hidden', timeout: Timeouts.EXTRA_LONG }).catch(() => {});
     await this.firstNameInput.fill(newName);
-    await Promise.all([this.page.waitForLoadState('networkidle'), this.saveButton.click()]);
+    await Promise.all([
+      this.page.waitForResponse(
+        (response) => response.request().method() === 'PUT' && response.url().includes('/api/v2/pim/employees') && response.ok(),
+        { timeout: Timeouts.LONG },
+      ),
+      this.saveButton.click(),
+    ]);
   }
 
   async clearSearch(): Promise<void> {

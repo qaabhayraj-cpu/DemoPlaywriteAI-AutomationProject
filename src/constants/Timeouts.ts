@@ -1,8 +1,8 @@
 export const Timeouts = {
   SHORT: 5000,
   MEDIUM: 15000,
-  LONG: 15000,        // Reduced from 30s to 15s for faster test failure feedback
-  EXTRA_LONG: 30000,  // Reduced from 60s to 30s
+  LONG: 30000,        // 30s — public demo site is slow on CI runners
+  EXTRA_LONG: 60000,  // 60s — navigation and heavy operations
   ANIMATION: 500,
   TOAST: 3000,
 } as const;

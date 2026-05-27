@@ -8,7 +8,7 @@ export class LeavePage extends BasePage {
   readonly applyTab = this.page.getByRole('link', { name: 'Apply' });
   readonly myLeaveTab = this.page.getByRole('link', { name: 'My Leave' });
   readonly entitlementTab = this.page.getByRole('link', { name: 'My Entitlements' });
-  readonly leaveTypeSelect = this.page.getByRole('combobox').first();
+  readonly leaveTypeSelect = this.page.locator('.oxd-select-text').first();
   readonly fromDateInput = this.page.getByPlaceholder('From Date');
   readonly toDateInput = this.page.getByPlaceholder('To Date');
   readonly reasonInput = this.page.getByRole('textbox', { name: 'Comments' });
@@ -25,16 +25,14 @@ export class LeavePage extends BasePage {
   }
 
   async navigateToApply(): Promise<void> {
-    await this.page.goto(Routes.LEAVE, { waitUntil: 'domcontentloaded' });
-    await this.waitForPageLoad();
-    await expect(this.applyTab).toBeVisible();
-    await this.applyTab.click();
-    await this.waitForPageLoad();
+    await this.page.goto(Routes.LEAVE_APPLY, { waitUntil: 'load' });
+    await expect(this.leaveTypeSelect).toBeVisible({ timeout: Timeouts.EXTRA_LONG });
   }
 
   async applyForLeave(data: LeaveData): Promise<void> {
     await this.navigateToApply();
-    await this.leaveTypeSelect.selectOption({ label: data.leaveType });
+    await this.leaveTypeSelect.click();
+    await this.page.getByRole('option', { name: data.leaveType }).click();
     await this.fromDateInput.fill(data.fromDate);
     await this.toDateInput.fill(data.toDate);
     await this.reasonInput.fill(data.reason);
@@ -49,13 +47,12 @@ export class LeavePage extends BasePage {
   }
 
   async getLeaveBalance(leaveType: string): Promise<number> {
-    const label = this.page.getByText(new RegExp(`${leaveType}`, 'i'));
-    await expect(label).toBeVisible();
-    const balanceText = await label.locator('..').getByText(/\d+/).first().textContent();
-    if (balanceText === null) {
-      return 0;
-    }
-    return Number(balanceText.replace(/[^\d]/g, ''));
+    const row = this.page.locator('[role="row"]').filter({ hasText: leaveType }).first();
+    if (!(await row.isVisible())) return 0;
+    const lastCell = row.locator('[role="cell"]').last();
+    const balanceText = (await lastCell.textContent()) ?? '0';
+    const match = balanceText.match(/[\d.]+/);
+    return match ? Number(match[0]) : 0;
   }
 
   async getLeaveList(): Promise<LeaveRecord[]> {
