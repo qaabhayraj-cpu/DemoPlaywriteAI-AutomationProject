@@ -16,3 +16,4 @@ npm-debug.log
 jmeter/bin/
 jmeter/results/
 jmeter/reports/
+jmeter.log

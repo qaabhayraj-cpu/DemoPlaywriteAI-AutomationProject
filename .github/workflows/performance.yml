@@ -18,7 +18,7 @@ on:
         required: false
         default: login
         type: choice
-        options: [login]
+        options: [login, employee-list]
       threads:
         description: 'Virtual users (concurrent threads)'
         required: false

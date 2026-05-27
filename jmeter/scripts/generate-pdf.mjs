@@ -40,57 +40,139 @@ const TH_CRITICAL = 60_000;  // ms — above = Critical; between = Slow
 /* Labels intentionally expected to fail — excluded from functional error rate */
 const EXPECTED_FAILURES = new Set([]);
 
-/* ── Per-TC metadata: steps to reproduce, expected result ──────────────── */
-const TC_META = {
-  'GET Login Page': {
-    id: 'TC-001', module: 'Authentication Module',
-    description: 'Verifies the OrangeHRM login page loads over HTTPS and returns HTTP 200 with the expected page title.',
-    steps: [
-      { action: 'Open browser and navigate to the OrangeHRM base URL over HTTPS.',
-        expected: 'Browser establishes a TLS connection and sends GET /web/index.php/auth/login.' },
-      { action: 'Wait for the server to return the full login page HTML response.',
-        expected: 'Server returns HTTP 200 with page HTML containing "OrangeHRM" in the title — response time ≤ 3 000 ms.' },
-      { action: 'Assert the HTTP response code and verify "OrangeHRM" text exists in the response body.',
-        expected: 'Response code is 200 OK and the assertion on the title text passes.' },
-    ],
+/* ── Per-plan TC metadata: steps to reproduce, expected result ──────────── */
+const TC_META_BY_PLAN = {
+
+  /* ─── login plan ─────────────────────────────────────────────────────── */
+  login: {
+    'GET Login Page': {
+      id: 'TC-001', module: 'Authentication Module',
+      description: 'Verifies the OrangeHRM login page loads over HTTPS and returns HTTP 200 with the expected page title.',
+      steps: [
+        { action: 'Open browser and navigate to the OrangeHRM base URL over HTTPS.',
+          expected: 'Browser establishes a TLS connection and sends GET /web/index.php/auth/login.' },
+        { action: 'Wait for the server to return the full login page HTML response.',
+          expected: 'Server returns HTTP 200 with page HTML containing "OrangeHRM" in the title — response time ≤ 3 000 ms.' },
+        { action: 'Assert the HTTP response code and verify "OrangeHRM" text exists in the response body.',
+          expected: 'Response code is 200 OK and the assertion on the title text passes.' },
+      ],
+    },
+    'POST Login Credentials': {
+      id: 'TC-002', module: 'Authentication Module',
+      description: 'Validates that submitting valid credentials authenticates the user and redirects the browser to the dashboard.',
+      steps: [
+        { action: 'Extract the CSRF token from the login page HTML response using a regex extractor.',
+          expected: 'A valid, non-empty CSRF token string is captured and stored in the ${csrf_token} variable.' },
+        { action: 'POST username "Admin", password "admin123", and the extracted CSRF token to /web/index.php/auth/validate.',
+          expected: 'Server validates credentials and returns HTTP 302 redirect to /dashboard/index — full round-trip ≤ 5 000 ms.' },
+        { action: 'Follow the 302 redirect automatically and assert the final URL contains "dashboard".',
+          expected: 'Final response URL contains "dashboard", HTTP status is 200 OK, and session is authenticated.' },
+      ],
+    },
+    'POST Login Credentials-0': {
+      id: 'TC-002a', module: 'Authentication Module',
+      description: 'Sub-request: POST to /auth/validate endpoint returns HTTP 302 redirect to the dashboard.',
+      steps: [
+        { action: 'Send POST request to /web/index.php/auth/validate with credentials and CSRF token.',
+          expected: 'Request reaches the authentication endpoint with correct Content-Type header.' },
+        { action: 'Receive the HTTP response from the authentication endpoint.',
+          expected: 'Server returns HTTP 302 with a Location header pointing to /dashboard/index — response ≤ 5 000 ms.' },
+        { action: 'Verify the Location header in the 302 response points to the dashboard.',
+          expected: 'Location header URL contains "/dashboard" path.' },
+      ],
+    },
+    'POST Login Credentials-1': {
+      id: 'TC-002b', module: 'Authentication Module',
+      description: 'Sub-request: GET to /dashboard/index after following the 302 redirect returns HTTP 200.',
+      steps: [
+        { action: 'Follow the redirect from /auth/validate to /dashboard/index automatically.',
+          expected: 'Browser sends a GET request to /web/index.php/dashboard/index.' },
+        { action: 'Receive the dashboard page HTML response from the server.',
+          expected: 'Server returns HTTP 200 with dashboard content — response ≤ 3 000 ms.' },
+        { action: 'Verify HTTP 200 status and presence of dashboard page content.',
+          expected: 'Response code is 200 OK and the dashboard HTML content is returned.' },
+      ],
+    },
   },
-  'POST Login Credentials': {
-    id: 'TC-002', module: 'Authentication Module',
-    description: 'Validates that submitting valid credentials authenticates the user and redirects the browser to the dashboard.',
-    steps: [
-      { action: 'Extract the CSRF token from the login page HTML response using a regex extractor.',
-        expected: 'A valid, non-empty CSRF token string is captured and stored in the ${csrf_token} variable.' },
-      { action: 'POST username "Admin", password "admin123", and the extracted CSRF token to /web/index.php/auth/validate.',
-        expected: 'Server validates credentials and returns HTTP 302 redirect to /dashboard/index — full round-trip ≤ 5 000 ms.' },
-      { action: 'Follow the 302 redirect automatically and assert the final URL contains "dashboard".',
-        expected: 'Final response URL contains "dashboard", HTTP status is 200 OK, and session is authenticated.' },
-    ],
-  },
-  'POST Login Credentials-0': {
-    id: 'TC-002a', module: 'Authentication Module',
-    description: 'Sub-request: POST to /auth/validate endpoint returns HTTP 302 redirect to the dashboard.',
-    steps: [
-      { action: 'Send POST request to /web/index.php/auth/validate with credentials and CSRF token.',
-        expected: 'Request reaches the authentication endpoint with correct Content-Type header.' },
-      { action: 'Receive the HTTP response from the authentication endpoint.',
-        expected: 'Server returns HTTP 302 with a Location header pointing to /dashboard/index — response ≤ 5 000 ms.' },
-      { action: 'Verify the Location header in the 302 response points to the dashboard.',
-        expected: 'Location header URL contains "/dashboard" path.' },
-    ],
-  },
-  'POST Login Credentials-1': {
-    id: 'TC-002b', module: 'Authentication Module',
-    description: 'Sub-request: GET to /dashboard/index after following the 302 redirect returns HTTP 200.',
-    steps: [
-      { action: 'Follow the redirect from /auth/validate to /dashboard/index automatically.',
-        expected: 'Browser sends a GET request to /web/index.php/dashboard/index.' },
-      { action: 'Receive the dashboard page HTML response from the server.',
-        expected: 'Server returns HTTP 200 with dashboard content — response ≤ 3 000 ms.' },
-      { action: 'Verify HTTP 200 status and presence of dashboard page content.',
-        expected: 'Response code is 200 OK and the dashboard HTML content is returned.' },
-    ],
+
+  /* ─── employee-list plan ─────────────────────────────────────────────── */
+  'employee-list': {
+    'GET Login Page': {
+      id: 'TC-001', module: 'Authentication Module',
+      description: 'Pre-requisite: load the login page to obtain the CSRF token required for authentication before accessing the employee list.',
+      steps: [
+        { action: 'Open browser and navigate to the OrangeHRM base URL over HTTPS.',
+          expected: 'Browser establishes a TLS connection and sends GET /web/index.php/auth/login.' },
+        { action: 'Wait for the server to return the full login page HTML.',
+          expected: 'Server returns HTTP 200 containing "OrangeHRM" in the response body — response time ≤ 8 000 ms.' },
+        { action: 'Extract the CSRF token using a regex extractor on the response body.',
+          expected: 'A valid CSRF token is captured in the ${csrf_token} JMeter variable for use in the login POST.' },
+      ],
+    },
+    'POST Login Credentials': {
+      id: 'TC-002', module: 'Authentication Module',
+      description: 'Authenticate the user with valid credentials so a session cookie is available for the subsequent employee list requests.',
+      steps: [
+        { action: 'POST username, password, and CSRF token to /web/index.php/auth/validate.',
+          expected: 'Server validates credentials and returns HTTP 302 redirect to /dashboard/index — round-trip ≤ 8 000 ms.' },
+        { action: 'Follow the redirect to the dashboard page.',
+          expected: 'Final response URL contains "dashboard" and HTTP 200 is returned — session cookie is set in the cookie manager.' },
+        { action: 'Assert the final URL contains "dashboard".',
+          expected: 'Response URL assertion passes — user is successfully authenticated.' },
+      ],
+    },
+    'POST Login Credentials-0': {
+      id: 'TC-002a', module: 'Authentication Module',
+      description: 'Sub-request: POST to /auth/validate returns HTTP 302.',
+      steps: [
+        { action: 'Send POST to /web/index.php/auth/validate.',
+          expected: 'Server returns HTTP 302 with Location header pointing to /dashboard/index.' },
+        { action: 'Verify the 302 redirect response.',
+          expected: 'Response time ≤ 8 000 ms and Location header contains "/dashboard".' },
+        { action: 'Cookie manager stores the session cookie.',
+          expected: 'Session cookie persists for subsequent requests in the same thread iteration.' },
+      ],
+    },
+    'POST Login Credentials-1': {
+      id: 'TC-002b', module: 'Authentication Module',
+      description: 'Sub-request: GET /dashboard/index after 302 redirect returns HTTP 200.',
+      steps: [
+        { action: 'Follow the 302 redirect to /web/index.php/dashboard/index.',
+          expected: 'GET request is sent to the dashboard endpoint.' },
+        { action: 'Receive the dashboard page response.',
+          expected: 'Server returns HTTP 200 with dashboard HTML — response ≤ 3 000 ms.' },
+        { action: 'Verify HTTP 200 and dashboard content.',
+          expected: 'Response code is 200 OK and the SPA shell is returned.' },
+      ],
+    },
+    'GET Employee List Page': {
+      id: 'TC-003', module: 'PIM Module',
+      description: 'Measures the response time for loading the Employee List SPA page after authentication — mirrors the smoke test "should display employee list with records".',
+      steps: [
+        { action: 'Navigate to /web/index.php/pim/viewEmployeeList using the authenticated session.',
+          expected: 'Browser sends a GET request to the employee list URL with the session cookie attached.' },
+        { action: 'Wait for the server to return the SPA shell HTML for the employee list page.',
+          expected: 'Server returns HTTP 200 with page HTML containing "OrangeHRM" — response time ≤ 8 000 ms.' },
+        { action: 'Assert the response contains "OrangeHRM" and HTTP 200 status.',
+          expected: 'Content assertion passes and HTTP response code is 200 OK, confirming the page is accessible.' },
+      ],
+    },
+    'GET Employee API': {
+      id: 'TC-004', module: 'PIM Module — REST API',
+      description: 'Measures the REST API response time for fetching the employee list — this is the XHR call the SPA makes after the page shell loads.',
+      steps: [
+        { action: 'Send GET request to /web/index.php/api/v2/pim/employees?limit=50&offset=0 with Accept: application/json header.',
+          expected: 'Request is sent to the employee API endpoint with the authenticated session cookie.' },
+        { action: 'Receive the JSON response containing the employee data array.',
+          expected: 'Server returns HTTP 200 with JSON body containing a "data" key — response time ≤ 5 000 ms.' },
+        { action: 'Assert the JSON response body contains a "data" field.',
+          expected: 'Content assertion passes — employee records are present in the response.' },
+      ],
+    },
   },
 };
+
+const TC_META = TC_META_BY_PLAN[plan] || TC_META_BY_PLAN['login'];
 
 /* ── Parse JTL ──────────────────────────────────────────────────────────── */
 const jtlRaw = fs.readFileSync(jtlFile, 'utf8').trim().split('\n');
@@ -694,7 +776,7 @@ body { font-family: 'Inter', sans-serif; font-size: 12.5px; color: var(--body); 
     <div class="info-card">
       <div class="info-card-title">Test Configuration</div>
       <div class="info-row"><span class="info-key">Test Plan</span><span class="info-val">${plan}.jmx</span></div>
-      <div class="info-row"><span class="info-key">Thread Group</span><span class="info-val">Login Smoke Test</span></div>
+      <div class="info-row"><span class="info-key">Thread Group</span><span class="info-val">${plan === 'employee-list' ? 'Employee List Smoke Test' : 'Login Smoke Test'}</span></div>
       <div class="info-row"><span class="info-key">Virtual Users</span><span class="info-val">${THREADS}</span></div>
       <div class="info-row"><span class="info-key">Iterations</span><span class="info-val">1 loop</span></div>
       <div class="info-row"><span class="info-key">Ramp-up</span><span class="info-val">1 second</span></div>
