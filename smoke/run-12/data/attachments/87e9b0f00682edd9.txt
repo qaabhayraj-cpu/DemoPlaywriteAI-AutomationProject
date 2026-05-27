@@ -1,0 +1,1 @@
+[@faker-js/faker]: faker.internet.email(firstName, lastName, provider, options) is deprecated since v8.0 and will be removed in v9.0. Please use faker.internet.email({ firstName, lastName, provider, ... }) instead.
