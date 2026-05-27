@@ -40,12 +40,6 @@ on:
         default: qa
         type: string
 
-# ── Permissions (needed for GitHub Pages deployment) ──────────────────────────
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
 # ── Env ───────────────────────────────────────────────────────────────────────
 env:
   NODE_VERSION: '20.x'
@@ -104,20 +98,8 @@ jobs:
         if: always()
         run: npm run report:allure
 
-      # ── 6. Deploy Allure report to GitHub Pages ───────────────────────────────
-      # Each run gets its own URL:
-      # https://qaabhayraj-cpu.github.io/DemoPlaywriteAI-AutomationProject/smoke/run-<N>/
-      - name: Deploy Allure report to GitHub Pages
-        if: always()
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report
-          destination_dir: smoke/run-${{ github.run_number }}
-          keep_files: true
-
-      # ── 7. Upload artifacts (backup) ─────────────────────────────────────────
-      - name: Upload Allure report artifact
+      # ── 6. Upload artifacts ───────────────────────────────────────────────────
+      - name: Upload Allure report
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -133,32 +115,32 @@ jobs:
           path: test-results/
           retention-days: 14
 
-      # ── 8. GitHub Actions job summary with clickable report URL ──────────────
+      # ── 7. GitHub Actions job summary ────────────────────────────────────────
       - name: Write job summary
         if: always()
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
           RUN_TIME=$(date '+%Y-%m-%d %H:%M:%S UTC')
-          REPORT_URL="https://qaabhayraj-cpu.github.io/DemoPlaywriteAI-AutomationProject/smoke/run-${{ github.run_number }}/"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
           echo "## $EMOJI Smoke Tests — \`${{ env.BROWSER }}\` | \`${{ env.TEST_ENV }}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 [Open Allure Report]($REPORT_URL)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **URL:** \`$REPORT_URL\`" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 [Open Run & Download Allure Report]($RUN_URL)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Parameter   | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|-------------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| Status      | **${STATUS}** |" >> $GITHUB_STEP_SUMMARY
-          echo "| Run Time    | $RUN_TIME |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run Time    | \`$RUN_TIME\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Browser     | \`${{ env.BROWSER }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Environment | \`${{ env.TEST_ENV }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "| Branch      | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Run #       | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Triggered   | ${{ github.event_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run #       | \`${{ github.run_number }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered   | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📎 Download **Allure Report** from the _Artifacts_ section of the run above." >> $GITHUB_STEP_SUMMARY
 
-      # ── 9. Slack notification with report link (optional) ────────────────────
+      # ── 8. Slack notification (optional) ─────────────────────────────────────
       - name: Notify Slack
         if: always() && env.SLACK_WEBHOOK_URL != ''
         env:
@@ -166,9 +148,9 @@ jobs:
         run: |
           STATUS="${{ job.status }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
-          REPORT_URL="https://qaabhayraj-cpu.github.io/DemoPlaywriteAI-AutomationProject/smoke/run-${{ github.run_number }}/"
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           curl -s -X POST "$SLACK_WEBHOOK_URL" \
             -H 'Content-type: application/json' \
             -d "{
-              \"text\": \"$EMOJI *Smoke Tests* | Browser: \`${{ env.BROWSER }}\` | Env: \`${{ env.TEST_ENV }}\` | Branch: \`${{ github.ref_name }}\` | Status: *${STATUS}* | <${REPORT_URL}|📊 Open Allure Report>\"
+              \"text\": \"$EMOJI *Smoke Tests* | Browser: \`${{ env.BROWSER }}\` | Env: \`${{ env.TEST_ENV }}\` | Branch: \`${{ github.ref_name }}\` | Status: *${STATUS}* | <${RUN_URL}|📊 View Run & Allure Report>\"
             }"
