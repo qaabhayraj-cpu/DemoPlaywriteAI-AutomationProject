@@ -1,13 +1,13 @@
-name: Nightly Full Regression
+name: Full Regression — Daily 5:00 PM IST
 
 on:
   # Run on every push to main (not PRs — full regression is too heavy for every branch)
   push:
     branches: [main]
 
-  # Nightly at 01:00 UTC (06:30 IST)
+  # Daily at 5:00 PM IST (11:30 UTC)
   schedule:
-    - cron: '0 1 * * *'
+    - cron: '30 11 * * *'
 
   # Manual trigger from GitHub Actions UI
   workflow_dispatch: {}
