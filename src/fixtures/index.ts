@@ -49,20 +49,12 @@ export const test = base.extend<Fixtures>({
     const context = await browser.newContext({ storageState: authStatePath });
     const page = await context.newPage();
 
-    page.on('response', async (response) => {
+    page.on('response', (response) => {
       if (response.status() === 401 || response.status() === 403) {
         // eslint-disable-next-line no-console
         console.warn(
-          `⚠️  Auth failure detected (${response.status()} ${response.statusText()}) — invalidating auth state at ${authStatePath}`,
+          `⚠️  Auth failure detected (${response.status()} ${response.statusText()}) — session may have expired`,
         );
-        try {
-          await fs.unlink(authStatePath);
-          // eslint-disable-next-line no-console
-          console.warn('🔄 Auth state invalidated. Global setup will regenerate on next run.');
-        } catch (error) {
-          // eslint-disable-next-line no-console
-          console.error('Failed to invalidate auth state:', error);
-        }
       }
     });
 

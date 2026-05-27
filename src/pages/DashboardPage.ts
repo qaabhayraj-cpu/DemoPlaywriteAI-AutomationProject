@@ -44,8 +44,18 @@ export class DashboardPage extends BasePage {
   }
 
   async navigateToModule(moduleName: 'PIM' | 'Leave' | 'Time' | 'Recruitment' | 'My Info'): Promise<void> {
+    const urlPatterns: Record<string, RegExp> = {
+      PIM: /pim\/viewEmployeeList/,
+      Leave: /leave\/viewLeaveList/,
+      Time: /time\//,
+      Recruitment: /recruitment\//,
+      'My Info': /pim\/viewPersonalDetails/,
+    };
     const link = this.page.getByRole('link', { name: moduleName });
-    await Promise.all([this.page.waitForLoadState('networkidle'), link.click()]);
+    await Promise.all([
+      this.page.waitForURL(urlPatterns[moduleName], { timeout: 30000 }),
+      link.click(),
+    ]);
   }
 
   async getQuickLaunchItems(): Promise<string[]> {

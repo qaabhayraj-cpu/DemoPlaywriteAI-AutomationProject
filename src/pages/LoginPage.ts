@@ -10,6 +10,7 @@ export class LoginPage extends BasePage {
   readonly loginButton = this.page.getByRole('button', { name: 'Login' });
   readonly errorAlert = this.page.getByRole('alert');
   readonly brandLogo = this.page.getByRole('img', { name: /orange/i });
+  readonly fieldValidationMessage = this.page.getByText('Required').first();
 
   constructor(page: Page) {
     super(page);

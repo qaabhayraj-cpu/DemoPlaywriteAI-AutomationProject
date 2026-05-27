@@ -14,7 +14,7 @@ export class EmployeePage extends BasePage {
   readonly searchButton = this.page.getByRole('button', { name: 'Search' });
   readonly resetButton = this.page.getByRole('button', { name: 'Reset' });
   readonly searchNameInput = this.page.locator('.oxd-input-group:has-text("Employee Name") input').first();
-  readonly recordCountText = this.page.getByText(/Record\(s\) Found|Records Found/);
+  readonly recordCountText = this.page.getByText(/\d+ Record\(s\) Found/).first();
   readonly noRecordsText = this.page.getByText('No Records Found').first();
   readonly table = this.page.getByRole('table');
 

@@ -15,7 +15,7 @@ test.describe('Dashboard', () => {
   test('should navigate to Leave module from menu @regression', async ({ dashboardPage }) => {
     await dashboardPage.navigate('/web/index.php/dashboard/index');
     await dashboardPage.navigateToModule('Leave');
-    await expect(dashboardPage.page).toHaveURL(/leave\/viewLeaveModule/);
+    await expect(dashboardPage.page).toHaveURL(/leave\/viewLeaveList/);
   });
 
   test('should pass accessibility audit on dashboard @a11y', async ({ dashboardPage }) => {

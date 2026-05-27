@@ -12,7 +12,7 @@ test.describe('Authentication', () => {
     await loginPage.passwordInput.fill(adminUser.password);
     await loginPage.loginButton.click();
     await expect(loginPage.usernameInput).toBeVisible();
-    await expect(loginPage.errorAlert).toBeVisible();
+    await expect(loginPage.fieldValidationMessage).toBeVisible();
   });
 
   test('should show validation for empty password @regression', async ({ loginPage, adminUser }) => {
@@ -20,13 +20,13 @@ test.describe('Authentication', () => {
     await loginPage.usernameInput.fill(adminUser.username);
     await loginPage.loginButton.click();
     await expect(loginPage.passwordInput).toBeVisible();
-    await expect(loginPage.errorAlert).toBeVisible();
+    await expect(loginPage.fieldValidationMessage).toBeVisible();
   });
 
   test('should show validation for both fields empty @regression', async ({ loginPage }) => {
     await loginPage.navigate('/web/index.php/auth/login');
     await loginPage.loginButton.click();
-    await expect(loginPage.errorAlert).toBeVisible();
+    await expect(loginPage.fieldValidationMessage).toBeVisible();
   });
 
   test('should display all login page elements correctly @regression', async ({ loginPage }) => {

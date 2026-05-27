@@ -4,6 +4,7 @@ export const Routes = {
   EMPLOYEE_LIST: '/web/index.php/pim/viewEmployeeList',
   ADD_EMPLOYEE: '/web/index.php/pim/addEmployee',
   LEAVE: '/web/index.php/leave/viewLeaveList',
+  LEAVE_APPLY: '/web/index.php/leave/applyLeave',
   MY_LEAVE: '/web/index.php/leave/viewMyLeave',
   PROFILE: '/web/index.php/pim/viewPersonalDetails/empNumber/',
 } as const;

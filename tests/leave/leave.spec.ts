@@ -2,7 +2,7 @@ import { expect, test } from '@fixtures';
 
 test.describe('Leave Management', () => {
   test('should display leave balance for all leave types @regression', async ({ leavePage, leaveTypes }) => {
-    await leavePage.navigate('/web/index.php/leave/viewLeaveList');
+    await leavePage.navigate('/web/index.php/leave/viewMyLeaveEntitlement');
 
     for (const leaveType of leaveTypes.slice(0, 3)) {
       const balance = await leavePage.getLeaveBalance(leaveType);

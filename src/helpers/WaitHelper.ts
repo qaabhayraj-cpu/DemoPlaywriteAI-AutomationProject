@@ -2,11 +2,12 @@ import { Locator, Page } from '@playwright/test';
 import { Timeouts } from '@constants/Timeouts';
 
 export class WaitHelper {
-  static async waitForNetworkIdle(page: Page, timeout = Timeouts.EXTRA_LONG): Promise<void> {
+  static async waitForNetworkIdle(page: Page, timeout = Timeouts.SHORT): Promise<void> {
     try {
       await page.waitForLoadState('networkidle', { timeout });
     } catch {
-      await page.waitForLoadState('load', { timeout });
+      // Demo site has background polling that prevents networkidle; domcontentloaded is already satisfied
+      await page.waitForLoadState('domcontentloaded', { timeout: Timeouts.SHORT });
     }
   }
 
