@@ -2,6 +2,12 @@ name: Smoke Tests — Daily 5:40 IST
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 on:
+  # Run on every push to main (and PRs targeting main)
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
   # Daily at 5:40 IST (00:10 UTC)
   schedule:
     - cron: '10 0 * * *'
