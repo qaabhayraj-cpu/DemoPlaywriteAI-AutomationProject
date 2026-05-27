@@ -71,6 +71,19 @@ test.describe('Smoke', () => {
     });
   });
 
+  // ─── Leave Apply ──────────────────────────────────────────────────────────
+
+  test.describe('Leave Apply', () => {
+    test('should display apply leave form with all required fields @smoke', async ({ leavePage }) => {
+      await leavePage.navigateToApply();
+      await expect(leavePage.leaveTypeSelect).toBeVisible();
+      await expect(leavePage.fromDateInput).toBeVisible();
+      await expect(leavePage.toDateInput).toBeVisible();
+      await expect(leavePage.reasonInput).toBeVisible();
+      await expect(leavePage.submitButton).toBeVisible();
+    });
+  });
+
   // ─── API ─────────────────────────────────────────────────────────────────
 
   test.describe('API', () => {
