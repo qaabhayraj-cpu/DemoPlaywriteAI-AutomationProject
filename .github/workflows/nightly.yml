@@ -1,9 +1,19 @@
 name: Nightly Full Regression
 
 on:
+  # Run on every push to main (not PRs — full regression is too heavy for every branch)
+  push:
+    branches: [main]
+
+  # Nightly at 01:00 UTC (06:30 IST)
   schedule:
     - cron: '0 1 * * *'
+
+  # Manual trigger from GitHub Actions UI
   workflow_dispatch: {}
+
+  # Can be called by other workflows (e.g. after smoke passes)
+  workflow_call: {}
 
 jobs:
   full-regression:
@@ -19,7 +29,7 @@ jobs:
       - run: |
           npx playwright test --grep @regression
         env:
-          BASE_URL: ${{ secrets.BASE_URL }}
+          BASE_URL: ${{ secrets.BASE_URL || 'https://opensource-demo.orangehrmlive.com' }}
           USERNAME: ${{ secrets.USERNAME }}
           PASSWORD: ${{ secrets.PASSWORD }}
           CI: true
