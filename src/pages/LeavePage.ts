@@ -26,6 +26,8 @@ export class LeavePage extends BasePage {
 
   async navigateToApply(): Promise<void> {
     await this.page.goto(Routes.LEAVE_APPLY, { waitUntil: 'load' });
+    // Wait for form loader to disappear — it intercepts pointer events on the leave type dropdown
+    await this.page.locator('.oxd-form-loader').waitFor({ state: 'hidden', timeout: Timeouts.EXTRA_LONG }).catch(() => {});
     await expect(this.leaveTypeSelect).toBeVisible({ timeout: Timeouts.EXTRA_LONG });
   }
 
