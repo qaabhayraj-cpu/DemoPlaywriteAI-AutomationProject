@@ -152,7 +152,7 @@ jobs:
           secure: true
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
-          to: rajabhaysingh999@gmail.com
+          to: qaabhayraj@gmail.com
           from: QA Automation <${{ secrets.MAIL_USERNAME }}>
           subject: "${{ job.status == 'success' && '✅' || '❌' }} Smoke Tests — ${{ env.BROWSER }} | ${{ env.TEST_ENV }} | Run #${{ github.run_number }}"
           html_body: |
