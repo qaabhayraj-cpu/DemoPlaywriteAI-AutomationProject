@@ -21,6 +21,11 @@ async function globalSetup(): Promise<void> {
   const context = await browser.newContext({ baseURL: envConfig.baseUrl });
   const page = await context.newPage();
 
+  // Apply envConfig timeouts — global-setup creates its own browser/context so
+  // playwright.config.ts `use` settings are NOT inherited here automatically.
+  page.setDefaultNavigationTimeout(envConfig.navigationTimeout);
+  page.setDefaultTimeout(envConfig.actionTimeout);
+
   // Retry page.goto up to 3 times — the public demo site can be slow on CI runners
   const maxRetries = 3;
   let lastError: unknown;
@@ -29,7 +34,9 @@ async function globalSetup(): Promise<void> {
       // eslint-disable-next-line no-console
       if (attempt > 1) console.log(`⟳ Global setup — goto attempt ${attempt}/${maxRetries}...`);
       await page.goto('/web/index.php/auth/login', {
-        waitUntil: 'domcontentloaded',
+        // 'load' waits for JS to finish rendering the login form
+        // 'domcontentloaded' fires too early for this JS-rendered app
+        waitUntil: 'load',
         timeout: envConfig.navigationTimeout,
       });
       lastError = undefined;
@@ -42,6 +49,9 @@ async function globalSetup(): Promise<void> {
     }
   }
   if (lastError) throw lastError;
+
+  // Explicitly wait for the login form to be rendered before interacting
+  await page.getByPlaceholder('Username').waitFor({ state: 'visible', timeout: envConfig.navigationTimeout });
 
   await page.getByPlaceholder('Username').fill(envConfig.username);
   await page.getByPlaceholder('Password').fill(envConfig.password);
