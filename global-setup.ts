@@ -21,7 +21,28 @@ async function globalSetup(): Promise<void> {
   const context = await browser.newContext({ baseURL: envConfig.baseUrl });
   const page = await context.newPage();
 
-  await page.goto('/web/index.php/auth/login', { waitUntil: 'domcontentloaded' });
+  // Retry page.goto up to 3 times — the public demo site can be slow on CI runners
+  const maxRetries = 3;
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // eslint-disable-next-line no-console
+      if (attempt > 1) console.log(`⟳ Global setup — goto attempt ${attempt}/${maxRetries}...`);
+      await page.goto('/web/index.php/auth/login', {
+        waitUntil: 'domcontentloaded',
+        timeout: envConfig.navigationTimeout,
+      });
+      lastError = undefined;
+      break;
+    } catch (err) {
+      lastError = err;
+      // eslint-disable-next-line no-console
+      console.warn(`⚠️ Global setup — goto attempt ${attempt} failed: ${(err as Error).message}`);
+      if (attempt < maxRetries) await page.waitForTimeout(5000);
+    }
+  }
+  if (lastError) throw lastError;
+
   await page.getByPlaceholder('Username').fill(envConfig.username);
   await page.getByPlaceholder('Password').fill(envConfig.password);
   await Promise.all([

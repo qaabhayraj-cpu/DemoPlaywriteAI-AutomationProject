@@ -99,7 +99,7 @@ export const envConfig: EnvConfig = {
   timeout: getNumber(parsedEnv.TIMEOUT, 60000),
   expectTimeout: getNumber(parsedEnv.EXPECT_TIMEOUT, 10000),
   actionTimeout: getNumber(parsedEnv.ACTION_TIMEOUT, 10000),
-  navigationTimeout: getNumber(parsedEnv.NAVIGATION_TIMEOUT, 30000),
+  navigationTimeout: getNumber(parsedEnv.NAVIGATION_TIMEOUT, 60000),
   retries: getNumber(parsedEnv.RETRIES, 2),
   workers: getNumber(parsedEnv.WORKERS, 4),
   authStatePath,
