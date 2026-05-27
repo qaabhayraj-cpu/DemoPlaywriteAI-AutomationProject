@@ -84,7 +84,7 @@ jobs:
         run: |
           npx playwright test tests/smoke/smoke.spec.ts \
             --project=${{ env.BROWSER }} \
-            --reporter=list,html,junit
+            --reporter=list,html,junit,allure-playwright
         env:
           BASE_URL:  ${{ secrets.BASE_URL  || 'https://opensource-demo.orangehrmlive.com' }}
           USERNAME:  ${{ secrets.USERNAME  || 'Admin' }}
@@ -93,26 +93,37 @@ jobs:
           HEADLESS:  true
           TEST_ENV:  ${{ env.TEST_ENV }}
 
-      # ── 5. Upload artifacts ───────────────────────────────────────────────────
-      - name: Upload test results
+      # ── 5. Generate Allure HTML report ───────────────────────────────────────
+      - name: Generate Allure report
+        if: always()
+        run: npm run report:allure
+
+      # ── 6. Upload artifacts ───────────────────────────────────────────────────
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-playwright-report-${{ env.BROWSER }}-run${{ github.run_number }}
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Upload Allure report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-allure-report-${{ env.BROWSER }}-run${{ github.run_number }}
+          path: allure-report/
+          retention-days: 14
+
+      - name: Upload raw test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: smoke-results-${{ env.BROWSER }}-run${{ github.run_number }}
-          path: |
-            test-results/
-            playwright-report/
+          path: test-results/
           retention-days: 14
 
-      - name: Upload JUnit report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: smoke-junit-${{ env.BROWSER }}-run${{ github.run_number }}
-          path: test-results/**/*.xml
-          retention-days: 14
-
-      # ── 6. GitHub Actions job summary ────────────────────────────────────────
+      # ── 7. GitHub Actions job summary ────────────────────────────────────────
       - name: Write job summary
         if: always()
         run: |
@@ -129,9 +140,68 @@ jobs:
           echo "| Run #     | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Status    | **${STATUS}** |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "📎 Full report available in the _Artifacts_ section." >> $GITHUB_STEP_SUMMARY
+          echo "📎 Full Allure report available in the _Artifacts_ section." >> $GITHUB_STEP_SUMMARY
 
-      # ── 7. Slack notification (optional) ─────────────────────────────────────
+      # ── 8. Email report ───────────────────────────────────────────────────────
+      - name: Send email report
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          to: rajabhaysingh999@gmail.com
+          from: QA Automation <${{ secrets.MAIL_USERNAME }}>
+          subject: "${{ job.status == 'success' && '✅' || '❌' }} Smoke Tests — ${{ env.BROWSER }} | ${{ env.TEST_ENV }} | Run #${{ github.run_number }}"
+          html_body: |
+            <!DOCTYPE html>
+            <html>
+            <body style="font-family:Arial,sans-serif;max-width:600px;margin:auto;padding:20px;color:#333;">
+              <h2 style="border-bottom:2px solid ${{ job.status == 'success' && '#28a745' || '#dc3545' }};padding-bottom:10px;">
+                ${{ job.status == 'success' && '✅ Smoke Tests Passed' || '❌ Smoke Tests Failed' }}
+              </h2>
+              <table style="width:100%;border-collapse:collapse;margin:20px 0;">
+                <tr style="background:#f8f9fa;">
+                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Status</td>
+                  <td style="padding:10px;border:1px solid #dee2e6;color:${{ job.status == 'success' && '#28a745' || '#dc3545' }};font-weight:bold;">${{ job.status }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Browser</td>
+                  <td style="padding:10px;border:1px solid #dee2e6;">${{ env.BROWSER }}</td>
+                </tr>
+                <tr style="background:#f8f9fa;">
+                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Environment</td>
+                  <td style="padding:10px;border:1px solid #dee2e6;">${{ env.TEST_ENV }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Branch</td>
+                  <td style="padding:10px;border:1px solid #dee2e6;">${{ github.ref_name }}</td>
+                </tr>
+                <tr style="background:#f8f9fa;">
+                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Run #</td>
+                  <td style="padding:10px;border:1px solid #dee2e6;">${{ github.run_number }}</td>
+                </tr>
+                <tr>
+                  <td style="padding:10px;border:1px solid #dee2e6;font-weight:bold;">Triggered by</td>
+                  <td style="padding:10px;border:1px solid #dee2e6;">${{ github.event_name }}</td>
+                </tr>
+              </table>
+              <div style="margin:20px 0;">
+                <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                   style="background:#0366d6;color:#fff;padding:12px 24px;text-decoration:none;border-radius:4px;display:inline-block;font-weight:bold;">
+                  📊 View Full Allure Report & Artifacts
+                </a>
+              </div>
+              <p style="color:#6c757d;font-size:12px;margin-top:30px;border-top:1px solid #dee2e6;padding-top:10px;">
+                Allure report is attached as artifact <strong>smoke-allure-report-${{ env.BROWSER }}-run${{ github.run_number }}</strong> in the Actions run above.<br/>
+                This email was sent automatically by GitHub Actions · ${{ github.repository }}
+              </p>
+            </body>
+            </html>
+
+      # ── 9. Slack notification (optional) ─────────────────────────────────────
       - name: Notify Slack
         if: always() && env.SLACK_WEBHOOK_URL != ''
         env:
