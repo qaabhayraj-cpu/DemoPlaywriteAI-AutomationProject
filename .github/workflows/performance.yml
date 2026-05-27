@@ -1,7 +1,15 @@
-name: Performance Tests — JMeter
+name: Performance Tests — Daily 2:00 AM IST
 
 # ── Triggers ────────────────────────────────────────────────────────────────
 on:
+  # Run on every push to main
+  push:
+    branches: [main]
+
+  # Daily at 2:00 AM IST (20:30 UTC previous day)
+  schedule:
+    - cron: '30 20 * * *'
+
   # Manual run — pick plan, threads, loops from the GitHub UI
   workflow_dispatch:
     inputs:
@@ -26,10 +34,6 @@ on:
         required: false
         default: '1'
         type: string
-
-  # Nightly scheduled run — every day at 01:00 UTC
-  schedule:
-    - cron: '0 1 * * *'
 
   # Can also be called from other workflows (e.g. after smoke tests pass)
   workflow_call:
@@ -139,31 +143,43 @@ jobs:
       - name: Write job summary
         if: always()
         run: |
-          JTL="jmeter/results/${PLAN}-summary.jtl"
+          STATUS="${{ job.status }}"
+          EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
+          RUN_TIME=$(date '+%Y-%m-%d %H:%M:%S UTC')
+          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
           STATS="jmeter/reports/${PLAN}/statistics.json"
 
-          echo "## ⚡ JMeter Performance Report — \`${PLAN}\`" >> $GITHUB_STEP_SUMMARY
+          echo "## $EMOJI JMeter Performance — \`${PLAN}\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Parameter | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Test plan | \`${PLAN}.jmx\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Virtual users | ${THREADS} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Loops | ${LOOPS} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| Run # | ${{ github.run_number }} |" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 [Open Run & Download PDF Report]($RUN_URL)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Parameter     | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Status        | **${STATUS}** |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run Time      | \`$RUN_TIME\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Test plan     | \`${PLAN}.jmx\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Virtual users | \`${THREADS}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Loops         | \`${LOOPS}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch        | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Run #         | \`${{ github.run_number }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Triggered     | \`${{ github.event_name }}\` |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           if [ -f "$STATS" ]; then
             AVG=$(python3 -c "import json; d=json.load(open('$STATS')); print(int(d.get('Total',{}).get('meanResTime',0)))")
             MAX=$(python3 -c "import json; d=json.load(open('$STATS')); print(int(d.get('Total',{}).get('maxResTime',0)))")
             ERR=$(python3 -c "import json; d=json.load(open('$STATS')); print(round(d.get('Total',{}).get('errorPct',0)*100,3))")
-            echo "| Avg response | ${AVG} ms |" >> $GITHUB_STEP_SUMMARY
-            echo "| Max response | ${MAX} ms |" >> $GITHUB_STEP_SUMMARY
-            echo "| Error rate | ${ERR}% |" >> $GITHUB_STEP_SUMMARY
+            echo "### 📊 Performance Metrics" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric        | Value |" >> $GITHUB_STEP_SUMMARY
+            echo "|---------------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Avg response  | \`${AVG} ms\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Max response  | \`${MAX} ms\` |" >> $GITHUB_STEP_SUMMARY
+            echo "| Error rate    | \`${ERR}%\` |" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
           fi
 
-          echo "📎 **PDF report** is attached in the _Artifacts_ section of this run." >> $GITHUB_STEP_SUMMARY
+          echo "📎 Download **PDF Report** from the _Artifacts_ section of the run above." >> $GITHUB_STEP_SUMMARY
 
       # ── 9. Email report (optional — set MAIL_* secrets) ─────────────────────
       - name: Send email report
