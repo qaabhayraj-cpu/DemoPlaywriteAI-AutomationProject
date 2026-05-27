@@ -5,6 +5,7 @@ export const Routes = {
   ADD_EMPLOYEE: '/web/index.php/pim/addEmployee',
   LEAVE: '/web/index.php/leave/viewLeaveList',
   LEAVE_APPLY: '/web/index.php/leave/applyLeave',
+  LEAVE_ENTITLEMENT: '/web/index.php/leave/viewMyLeaveEntitlement',
   MY_LEAVE: '/web/index.php/leave/viewMyLeave',
   PROFILE: '/web/index.php/pim/viewPersonalDetails/empNumber/',
 } as const;

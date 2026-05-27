@@ -1,4 +1,5 @@
 import { expect, test } from '@fixtures';
+import { Routes } from '@constants/Routes';
 
 test.describe('Smoke', () => {
   // ─── Authentication UI ──────────────────────────────────────────────────────
@@ -6,7 +7,7 @@ test.describe('Smoke', () => {
   test.describe('Authentication', () => {
     test('should login successfully with valid credentials @smoke @critical', async ({ loginPage, adminUser }) => {
       await test.step('Navigate to login page', async () => {
-        await loginPage.navigate('/web/index.php/auth/login');
+        await loginPage.navigate(Routes.LOGIN);
         await loginPage.verifyPageLoaded();
       });
 
@@ -17,7 +18,7 @@ test.describe('Smoke', () => {
     });
 
     test('should logout and redirect to login page @smoke', async ({ loginPage, adminUser }) => {
-      await loginPage.navigate('/web/index.php/auth/login');
+      await loginPage.navigate(Routes.LOGIN);
       await loginPage.login(adminUser.username, adminUser.password);
       await loginPage.logout();
       await expect(loginPage.page).toHaveURL(/auth\/login/);
@@ -29,12 +30,12 @@ test.describe('Smoke', () => {
 
   test.describe('Dashboard', () => {
     test('should display dashboard after login @smoke', async ({ dashboardPage }) => {
-      await dashboardPage.navigate('/web/index.php/dashboard/index');
+      await dashboardPage.navigate(Routes.DASHBOARD);
       await dashboardPage.verifyPageLoaded();
     });
 
     test('should display all top-level navigation menu items @smoke', async ({ dashboardPage }) => {
-      await dashboardPage.navigate('/web/index.php/dashboard/index');
+      await dashboardPage.navigate(Routes.DASHBOARD);
       const labels = await dashboardPage.getAllMenuLabels();
       const expected = ['Admin', 'PIM', 'Leave', 'Time', 'Recruitment', 'My Info', 'Performance', 'Directory', 'Maintenance'];
 
@@ -53,7 +54,7 @@ test.describe('Smoke', () => {
     });
 
     test('should display employee list with records @smoke', async ({ employeePage }) => {
-      await employeePage.page.goto('/web/index.php/pim/viewEmployeeList', { waitUntil: 'domcontentloaded' });
+      await employeePage.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'load' });
       await employeePage.waitForPageLoad();
       await employeePage.verifyPageLoaded();
       const names = await employeePage.getSearchResultNames();
@@ -65,7 +66,7 @@ test.describe('Smoke', () => {
 
   test.describe('Leave Management', () => {
     test('should display leave entitlements page @smoke', async ({ leavePage }) => {
-      await leavePage.navigate('/web/index.php/leave/viewLeaveList');
+      await leavePage.navigate(Routes.LEAVE);
       await leavePage.verifyPageLoaded();
     });
   });

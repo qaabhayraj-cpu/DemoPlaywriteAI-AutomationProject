@@ -1,4 +1,6 @@
 import { test } from '@playwright/test';
+import { envConfig } from '../../config/env.config';
+import { Routes } from '../../src/constants/Routes';
 
 test('log network during login', async ({ page }) => {
   page.on('request', (req) => {
@@ -11,11 +13,11 @@ test('log network during login', async ({ page }) => {
     console.log('RESPONSE', res.status(), res.url());
   });
 
-  await page.goto('/web/index.php/auth/login', { waitUntil: 'domcontentloaded' });
-  await page.getByPlaceholder('Username').fill('Admin');
-  await page.getByPlaceholder('Password').fill('admin123');
+  await page.goto(Routes.LOGIN, { waitUntil: 'load' });
+  await page.getByPlaceholder('Username').fill(envConfig.username);
+  await page.getByPlaceholder('Password').fill(envConfig.password);
   await Promise.all([
-    page.waitForNavigation({ waitUntil: 'domcontentloaded' }),
+    page.waitForURL(/dashboard\/index/, { waitUntil: 'load' }),
     page.getByRole('button', { name: 'Login' }).click(),
   ]);
 

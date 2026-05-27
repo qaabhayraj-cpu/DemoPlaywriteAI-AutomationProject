@@ -1,4 +1,5 @@
 import { faker } from '@faker-js/faker';
+import { envConfig } from '@config';
 import { EmployeeData, LeaveData, UserCredentials } from '@types';
 
 export class DataFactory {
@@ -35,8 +36,8 @@ export class DataFactory {
 
   static generateAdminUser(): UserCredentials {
     return {
-      username: 'Admin',
-      password: 'admin123',
+      username: envConfig.username,
+      password: envConfig.password,
       role: 'Admin',
     };
   }

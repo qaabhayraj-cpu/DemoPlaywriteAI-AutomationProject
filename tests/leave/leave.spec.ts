@@ -1,8 +1,9 @@
 import { expect, test } from '@fixtures';
+import { Routes } from '@constants/Routes';
 
 test.describe('Leave Management', () => {
   test('should display leave balance for all leave types @regression', async ({ leavePage, leaveTypes }) => {
-    await leavePage.navigate('/web/index.php/leave/viewMyLeaveEntitlement');
+    await leavePage.navigate(Routes.LEAVE_ENTITLEMENT);
 
     for (const leaveType of leaveTypes.slice(0, 3)) {
       const balance = await leavePage.getLeaveBalance(leaveType);

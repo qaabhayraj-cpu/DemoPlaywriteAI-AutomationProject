@@ -1,4 +1,6 @@
 import { expect, test } from '@fixtures';
+import { Routes } from '@constants/Routes';
+import { Timeouts } from '@constants/Timeouts';
 
 test.describe('Employee Management', () => {
   test('should search employee by employee ID @regression', async ({ employeePage, employeeData }) => {
@@ -14,9 +16,9 @@ test.describe('Employee Management', () => {
   });
 
   test('should display correct table column headers @regression', async ({ employeePage }) => {
-    await employeePage.page.goto('/web/index.php/pim/viewEmployeeList', { waitUntil: 'domcontentloaded' });
+    await employeePage.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'load' });
     await employeePage.waitForPageLoad();
-    await employeePage.table.getByRole('columnheader').first().waitFor({ state: 'visible', timeout: 30000 });
+    await employeePage.table.getByRole('columnheader').first().waitFor({ state: 'visible', timeout: Timeouts.EXTRA_LONG });
     const headerLabels = await employeePage.table.getByRole('columnheader').allTextContents();
     const expected = ['Id', 'First (& Middle) Name', 'Last Name', 'Job Title', 'Employment Status', 'Sub Unit', 'Supervisor', 'Actions'];
 

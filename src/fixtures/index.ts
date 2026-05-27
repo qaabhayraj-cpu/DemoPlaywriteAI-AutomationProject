@@ -11,7 +11,6 @@ import { NavigationMenu } from '@components/NavigationMenu';
 import { TopBar } from '@components/TopBar';
 import { DataFactory } from '@helpers/DataFactory';
 import { envConfig } from '@config';
-import users from '../../test-data/users.json' with { type: 'json' };
 import leaveTypes from '../../test-data/leave-types.json' with { type: 'json' };
 
 export interface Fixtures {
@@ -131,7 +130,7 @@ export const test = base.extend<Fixtures>({
   },
 
   adminUser: async ({}, use) => {
-    await use(users.admin);
+    await use({ username: envConfig.username, password: envConfig.password, role: 'Admin' });
   },
 
   leaveTypes: async ({}, use) => {

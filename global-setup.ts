@@ -1,5 +1,6 @@
 import { chromium } from '@playwright/test';
 import { envConfig } from './config/env.config';
+import { Routes } from './src/constants/Routes';
 import fs from 'fs';
 
 async function globalSetup(): Promise<void> {
@@ -33,7 +34,7 @@ async function globalSetup(): Promise<void> {
     try {
       // eslint-disable-next-line no-console
       if (attempt > 1) console.log(`⟳ Global setup — goto attempt ${attempt}/${maxRetries}...`);
-      await page.goto('/web/index.php/auth/login', {
+      await page.goto(Routes.LOGIN, {
         // 'load' waits for JS to finish rendering the login form
         // 'domcontentloaded' fires too early for this JS-rendered app
         waitUntil: 'load',
