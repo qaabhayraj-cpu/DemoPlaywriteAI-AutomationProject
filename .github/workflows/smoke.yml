@@ -142,7 +142,14 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📎 Full Allure report available in the _Artifacts_ section." >> $GITHUB_STEP_SUMMARY
 
-      # ── 8. Email report ───────────────────────────────────────────────────────
+      # ── 8. Zip Allure report for email attachment ────────────────────────────
+      - name: Zip Allure report
+        if: always()
+        run: |
+          zip -r allure-report.zip allure-report/
+          echo "📦 Allure report zipped: $(du -sh allure-report.zip | cut -f1)"
+
+      # ── 9. Email report with Allure zip attached ──────────────────────────────
       - name: Send email report
         if: always()
         uses: dawidd6/action-send-mail@v3
@@ -195,13 +202,14 @@ jobs:
                 </a>
               </div>
               <p style="color:#6c757d;font-size:12px;margin-top:30px;border-top:1px solid #dee2e6;padding-top:10px;">
-                Allure report is attached as artifact <strong>smoke-allure-report-${{ env.BROWSER }}-run${{ github.run_number }}</strong> in the Actions run above.<br/>
+                📎 <strong>allure-report.zip</strong> is attached to this email — open index.html inside to view the full interactive report.<br/>
                 This email was sent automatically by GitHub Actions · ${{ github.repository }}
               </p>
             </body>
             </html>
+          attachments: allure-report.zip
 
-      # ── 9. Slack notification (optional) ─────────────────────────────────────
+      # ── 10. Slack notification (optional) ────────────────────────────────────
       - name: Notify Slack
         if: always() && env.SLACK_WEBHOOK_URL != ''
         env:
