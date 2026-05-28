@@ -62,6 +62,8 @@ jobs:
           PASSWORD: ${{ secrets.PASSWORD || 'admin123' }}
           CI: true
           HEADLESS: true
+          NAVIGATION_TIMEOUT: '90000'
+          RETRIES: '3'
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -117,11 +119,11 @@ jobs:
     needs: [test, report]
     runs-on: ubuntu-latest
     if: always()
+    env:
+      SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
     steps:
       - name: Slack notification
         if: env.SLACK_WEBHOOK_URL != ''
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         run: |
           STATUS="${{ needs.test.result }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")

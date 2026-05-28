@@ -27,8 +27,8 @@ async function globalSetup(): Promise<void> {
   page.setDefaultNavigationTimeout(envConfig.navigationTimeout);
   page.setDefaultTimeout(envConfig.actionTimeout);
 
-  // Retry page.goto up to 3 times — the public demo site can be slow on CI runners
-  const maxRetries = 3;
+  // Retry page.goto up to 5 times — the public demo site can be slow on CI runners
+  const maxRetries = 5;
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
@@ -46,7 +46,7 @@ async function globalSetup(): Promise<void> {
       lastError = err;
       // eslint-disable-next-line no-console
       console.warn(`⚠️ Global setup — goto attempt ${attempt} failed: ${(err as Error).message}`);
-      if (attempt < maxRetries) await page.waitForTimeout(5000);
+      if (attempt < maxRetries) await page.waitForTimeout(15000);
     }
   }
   if (lastError) throw lastError;
