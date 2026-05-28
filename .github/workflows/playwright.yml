@@ -7,23 +7,12 @@ on:
     branches: [main, develop]
   workflow_dispatch:
     inputs:
-      browser:
-        description: 'Browser to run'
-        required: false
-        default: all
-        type: choice
-        options: [all, chromium, firefox, webkit]
       env:
         description: 'Test environment'
         required: false
         default: qa
         type: choice
         options: [qa, staging]
-      tags:
-        description: 'Test tags to run'
-        required: false
-        default: ''
-        type: string
 
 env:
   NODE_VERSION: '20.x'
@@ -35,8 +24,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
-        shard: [1, 2, 3]
+        include:
+          - browser: chromium
+            project: regression-chromium
+          - browser: firefox
+            project: regression-firefox
+          - browser: webkit
+            project: regression-webkit
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -50,12 +44,8 @@ jobs:
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npm ci
       - run: npx playwright install ${{ matrix.browser }} --with-deps
-      - name: Run tests
-        run: |
-          npx playwright test \
-            --project=${{ matrix.browser }} \
-            --shard=${{ matrix.shard }}/3 \
-            ${{ github.event.inputs.tags && format('--grep "{0}"', github.event.inputs.tags) || '' }}
+      - name: Run regression tests — ${{ matrix.browser }}
+        run: npx playwright test --project=${{ matrix.project }}
         env:
           BASE_URL: ${{ secrets.BASE_URL || 'https://opensource-demo.orangehrmlive.com' }}
           USERNAME: ${{ secrets.USERNAME || 'Admin' }}
@@ -68,14 +58,14 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.browser }}-${{ matrix.shard }}
+          name: test-results-${{ matrix.project }}
           path: test-results/
           retention-days: 7
       - name: Upload allure results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: allure-results-${{ matrix.browser }}-${{ matrix.shard }}
+          name: allure-results-${{ matrix.project }}
           path: allure-results/
           retention-days: 7
 
