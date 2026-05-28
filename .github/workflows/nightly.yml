@@ -80,8 +80,8 @@ jobs:
       # ── 4. Run regression tests ───────────────────────────────────────────────
       - name: Run regression tests
         run: |
-          npx playwright test --grep @regression \
-            --project=${{ env.BROWSER }} \
+          npx playwright test \
+            --project=regression-${{ env.BROWSER }} \
             --reporter=list,html,junit,allure-playwright
         env:
           BASE_URL:  ${{ secrets.BASE_URL  || 'https://opensource-demo.orangehrmlive.com' }}

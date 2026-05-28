@@ -72,5 +72,24 @@ export default defineConfig({
       name: 'mobile-safari',
       use: { ...devices['iPhone 13'] },
     },
+    // Dedicated regression projects — point to tests/regression/ and run serially per file
+    {
+      name: 'regression-chromium',
+      testDir: './tests/regression',
+      use: { ...devices['Desktop Chrome'] },
+      fullyParallel: false,
+    },
+    {
+      name: 'regression-firefox',
+      testDir: './tests/regression',
+      use: { ...devices['Desktop Firefox'] },
+      fullyParallel: false,
+    },
+    {
+      name: 'regression-webkit',
+      testDir: './tests/regression',
+      use: { ...devices['Desktop Safari'] },
+      fullyParallel: false,
+    },
   ],
 });
