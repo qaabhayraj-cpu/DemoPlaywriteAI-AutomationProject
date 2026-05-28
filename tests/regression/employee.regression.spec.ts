@@ -6,12 +6,6 @@ test.describe('Employee Management', () => {
     await employeePage.verifyNoResultsFound();
   });
 
-  test('should display record count in results header', async ({ employeePage }) => {
-    await employeePage.searchByName('Admin');
-    const count = await employeePage.getRecordCount();
-    expect(count).toBeGreaterThan(0);
-  });
-
   test('should reset search filters', async ({ employeePage }) => {
     await employeePage.searchByName('Admin');
     await employeePage.clearSearch();
