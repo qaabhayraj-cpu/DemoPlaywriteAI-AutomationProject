@@ -125,7 +125,9 @@ export class EmployeePage extends BasePage {
 
   async editFirstName(employeeId: string, newName: string): Promise<void> {
     await this.searchById(employeeId);
-    const editButton = this.page.getByRole('button', { name: 'Edit' }).first();
+    // Action buttons are icon-only (no accessible name); use first button in the matching row
+    const editButton = this.page.locator('[role="row"]').filter({ hasText: employeeId }).locator('button').first();
+    await editButton.waitFor({ state: 'visible', timeout: Timeouts.EXTRA_LONG });
     await Promise.all([
       this.page.waitForURL(/pim\/viewPersonalDetails/, { timeout: Timeouts.EXTRA_LONG }),
       editButton.click(),

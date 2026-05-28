@@ -2,7 +2,7 @@ import { expect, test } from '@fixtures';
 import { Routes } from '@constants/Routes';
 
 test.describe('Leave Management', () => {
-  test('should display leave balance for all leave types @regression', async ({ leavePage, leaveTypes }) => {
+  test('should display leave balance for all leave types', async ({ leavePage, leaveTypes }) => {
     await leavePage.navigate(Routes.LEAVE_ENTITLEMENT);
 
     for (const leaveType of leaveTypes.slice(0, 3)) {
@@ -11,7 +11,7 @@ test.describe('Leave Management', () => {
     }
   });
 
-  test('should display all required fields on apply leave form @regression', async ({ leavePage }) => {
+  test('should display all required fields on apply leave form', async ({ leavePage }) => {
     await leavePage.navigateToApply();
     await expect(leavePage.leaveTypeSelect).toBeVisible();
     await expect(leavePage.fromDateInput).toBeVisible();
@@ -20,12 +20,12 @@ test.describe('Leave Management', () => {
     await expect(leavePage.submitButton).toBeVisible();
   });
 
-  test('should apply for leave successfully @regression', async ({ leavePage, leaveData }) => {
+  test('should apply for leave successfully', async ({ leavePage, leaveData }) => {
     await leavePage.applyForLeave(leaveData);
     await leavePage.verifyLeaveSubmitted();
   });
 
-  test('should display submitted leave in my leave list @regression', async ({ leavePage, leaveData }) => {
+  test('should display submitted leave in my leave list', async ({ leavePage, leaveData }) => {
     await leavePage.applyForLeave(leaveData);
     await leavePage.verifyLeaveStatus(leaveData.leaveType, 'Pending');
   });
