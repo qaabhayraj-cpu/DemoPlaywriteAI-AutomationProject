@@ -52,6 +52,13 @@ export class DashboardPage extends BasePage {
       'My Info': /pim\/viewPersonalDetails/,
     };
     const link = this.page.getByRole('link', { name: moduleName });
+    if (!await link.isVisible()) {
+      const hamburger = this.page.locator('.oxd-main-menu-button');
+      if (await hamburger.isVisible()) {
+        await hamburger.click();
+        await link.waitFor({ state: 'visible', timeout: 5000 });
+      }
+    }
     await Promise.all([
       this.page.waitForURL(urlPatterns[moduleName], { timeout: 30000 }),
       link.click(),

@@ -37,6 +37,7 @@ export class LeavePage extends BasePage {
 
   async applyForLeave(data: LeaveData): Promise<void> {
     await this.navigateToApply();
+    await this.page.locator('.oxd-form-loader').waitFor({ state: 'hidden', timeout: Timeouts.EXTRA_LONG }).catch(() => {});
     await this.leaveTypeSelect.click();
     await this.page.getByRole('option', { name: data.leaveType }).click();
     await this.fromDateInput.fill(data.fromDate);
