@@ -1,4 +1,4 @@
-name: Playwright CI
+name: Playwright CI — Smoke
 
 on:
   push:
@@ -19,33 +19,29 @@ env:
   TEST_ENV: ${{ github.event.inputs.env || 'qa' }}
 
 jobs:
-  test:
+  smoke:
+    name: Smoke Tests — chromium
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - browser: chromium
-            project: regression-chromium
-          - browser: firefox
-            project: regression-firefox
-          - browser: webkit
-            project: regression-webkit
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-chromium-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
       - run: npm ci
-      - run: npx playwright install ${{ matrix.browser }} --with-deps
-      - name: Run regression tests — ${{ matrix.browser }}
-        run: npx playwright test --project=${{ matrix.project }}
+
+      - run: npx playwright install chromium --with-deps
+
+      - name: Run smoke tests
+        run: npx playwright test tests/smoke/ --project=chromium
         env:
           BASE_URL: ${{ secrets.BASE_URL || 'https://opensource-demo.orangehrmlive.com' }}
           USERNAME: ${{ secrets.USERNAME || 'Admin' }}
@@ -54,59 +50,17 @@ jobs:
           HEADLESS: true
           NAVIGATION_TIMEOUT: '90000'
           RETRIES: '3'
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-${{ matrix.project }}
+          name: smoke-results-${{ github.run_number }}
           path: test-results/
           retention-days: 7
-      - name: Upload allure results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-results-${{ matrix.project }}
-          path: allure-results/
-          retention-days: 7
-
-  report:
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-      - run: npm ci
-      - name: Download all allure artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: allure-results-*
-          merge-multiple: true
-          path: allure-results/
-      - name: Generate Allure report
-        run: |
-          npm run generate-env-report
-          npm run report:allure
-      - name: Upload Allure HTML report
-        uses: actions/upload-artifact@v4
-        with:
-          name: allure-report
-          path: allure-report/
-      - name: Deploy to GitHub Pages
-        if: github.ref == 'refs/heads/main'
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: allure-report
 
   notify:
-    needs: [test, report]
+    needs: smoke
     runs-on: ubuntu-latest
     if: always()
     env:
@@ -115,8 +69,8 @@ jobs:
       - name: Slack notification
         if: env.SLACK_WEBHOOK_URL != ''
         run: |
-          STATUS="${{ needs.test.result }}"
+          STATUS="${{ needs.smoke.result }}"
           EMOJI=$([[ "$STATUS" == "success" ]] && echo "✅" || echo "❌")
           curl -X POST "$SLACK_WEBHOOK_URL" \
             -H 'Content-type: application/json' \
-            -d "{\"text\":\"$EMOJI Playwright CI | Branch: ${{ github.ref_name }} | Status: $STATUS | Report: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"}"
+            -d "{\"text\":\"$EMOJI Smoke CI | Branch: ${{ github.ref_name }} | Status: $STATUS | <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View Run>\"}"

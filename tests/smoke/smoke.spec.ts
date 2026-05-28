@@ -74,9 +74,12 @@ test.describe('Smoke', () => {
   // ─── Leave Apply ──────────────────────────────────────────────────────────
 
   test.describe('Leave Apply', () => {
-    test('should display apply leave form with leave type select and submit button @smoke', async ({ leavePage }) => {
+    test('should display apply leave form with required controls @smoke', async ({ leavePage }) => {
       await leavePage.navigateToApply();
-      await expect(leavePage.leaveTypeSelect).toBeVisible();
+      // Accept either the leave type select (when balance exists) or the no-balance notice
+      await expect(
+        leavePage.leaveTypeSelect.or(leavePage.page.getByText('No Leave Types with Leave Balance'))
+      ).toBeVisible();
       await expect(leavePage.submitButton).toBeVisible();
     });
   });

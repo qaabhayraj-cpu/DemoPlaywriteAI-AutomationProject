@@ -2,10 +2,6 @@ name: Full Regression — Nightly 11:30 PM IST
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 on:
-  # Run on every push to main (not PRs — full regression is too heavy for every branch)
-  push:
-    branches: [main]
-
   # Nightly at 11:30 PM IST (18:00 UTC)
   schedule:
     - cron: '0 18 * * *'
