@@ -8,4 +8,5 @@ export const Tags = {
   NETWORK: '@network',
   MOBILE: '@mobile',
   FLAKY: '@flaky',
+  PERFORMANCE: '@performance',
 } as const;

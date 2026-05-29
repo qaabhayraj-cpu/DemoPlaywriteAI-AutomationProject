@@ -91,5 +91,12 @@ export default defineConfig({
       use: { ...devices['Desktop Safari'] },
       fullyParallel: false,
     },
+    // Dedicated performance project — Chromium only, serial to avoid resource contention
+    {
+      name: 'performance-chromium',
+      testDir: './tests/performance',
+      use: { ...devices['Desktop Chrome'] },
+      fullyParallel: false,
+    },
   ],
 });
