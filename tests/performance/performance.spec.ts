@@ -2,22 +2,19 @@ import { type Page, type TestInfo } from '@playwright/test';
 import { expect, test } from '@fixtures';
 import { Routes } from '@constants/Routes';
 
-// Performance budgets (ms) — calibrated to the OrangeHRM public demo site.
-// Observed worst-case values across runs: TTFB 5–8 s, API 6–10 s, login action ~15 s,
-// add-employee up to 34 s. Budgets are set ~25 % above observed max to catch real
-// regressions without flapping on normal demo-server variability.
+// Performance budgets (ms) — calibrated for the OrangeHRM public demo site
 const BUDGET = {
-  TTFB: 12000,
-  FCP: 12000,
-  DOM_CONTENT_LOADED: 20000,
-  PAGE_LOAD: 30000,
-  API_RESPONSE: 15000,
-  LOGIN_ACTION: 25000,
-  LOGOUT_ACTION: 15000,
-  MENU_RENDER: 8000,
-  FORM_LOAD: 20000,
-  EMPLOYEE_ADD: 50000,
-  LIST_RENDER: 20000,
+  TTFB: 3000,
+  FCP: 8000,
+  DOM_CONTENT_LOADED: 15000,
+  PAGE_LOAD: 25000,
+  API_RESPONSE: 3000,
+  LOGIN_ACTION: 12000,
+  LOGOUT_ACTION: 8000,
+  MENU_RENDER: 5000,
+  FORM_LOAD: 15000,
+  EMPLOYEE_ADD: 20000,
+  LIST_RENDER: 15000,
 } as const;
 
 interface PageMetrics {
