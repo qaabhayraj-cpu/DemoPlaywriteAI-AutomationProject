@@ -14,7 +14,7 @@ export class EmployeePage extends BasePage {
   readonly searchButton = this.page.getByRole('button', { name: 'Search' });
   readonly resetButton = this.page.getByRole('button', { name: 'Reset' });
   readonly searchNameInput = this.page.locator('.oxd-input-group:has-text("Employee Name") input').first();
-  readonly recordCountText = this.page.getByText(/\d+ Record\(s\) Found/).first();
+  readonly recordCountText = this.page.getByText(/\(?\d+\)? Records? Found/).first();
   readonly noRecordsText = this.page.getByText('No Records Found').first();
   readonly table = this.page.getByRole('table');
 
@@ -78,10 +78,11 @@ export class EmployeePage extends BasePage {
 
   async getSearchResultNames(): Promise<string[]> {
     const rows = this.page.locator('div[role="row"]');
-    // Wait for either a data row or the no-results indicator
+    // Wait for a data row, no-results text, or the record count (mobile card layout)
     await Promise.race([
       rows.nth(1).waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
       this.noRecordsText.waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
+      this.recordCountText.waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
     ]);
     if (await this.noRecordsText.isVisible()) return [];
     const names: string[] = [];
@@ -118,9 +119,13 @@ export class EmployeePage extends BasePage {
   }
 
   async getRecordCount(): Promise<number> {
-    const countText = await this.recordCountText.textContent();
-    const match = countText?.match(/(\d+)/);
-    return match ? Number(match[1]) : 0;
+    try {
+      const countText = await this.recordCountText.textContent({ timeout: Timeouts.SHORT });
+      const match = countText?.match(/\d+/);
+      return match ? Number(match[0]) : 0;
+    } catch {
+      return 0;
+    }
   }
 
   async editFirstName(employeeId: string, newName: string): Promise<void> {
