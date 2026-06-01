@@ -3,11 +3,12 @@ import { expect, test } from '@fixtures';
 import { Routes } from '@constants/Routes';
 
 // Performance budgets (ms) — calibrated for the OrangeHRM public demo site
+// TTFB/FCP are network-dependent on a shared demo host; keep budgets generous
 const BUDGET = {
-  TTFB: 3000,
-  FCP: 8000,
-  DOM_CONTENT_LOADED: 15000,
-  PAGE_LOAD: 25000,
+  TTFB: 9000,
+  FCP: 13000,
+  DOM_CONTENT_LOADED: 20000,
+  PAGE_LOAD: 30000,
   API_RESPONSE: 3000,
   LOGIN_ACTION: 12000,
   LOGOUT_ACTION: 8000,
