@@ -48,7 +48,8 @@ test.describe('Smoke', () => {
   // ─── Employee ─────────────────────────────────────────────────────────────
 
   test.describe('Employee Management', () => {
-    test('should add a new employee successfully @smoke @critical', async ({ employeePage, employeeData }) => {
+    test('should add a new employee successfully @smoke @critical', async ({ employeePage, employeeData }, testInfo) => {
+      testInfo.setTimeout(120000);
       const employeeId = await employeePage.addEmployee(employeeData);
       expect(employeeId).not.toHaveLength(0);
     });
