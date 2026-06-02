@@ -2,7 +2,6 @@ import { expect, type Page } from '@playwright/test';
 import { BasePage } from './BasePage.js';
 import { Routes } from '@constants/Routes';
 import { Timeouts } from '@constants/Timeouts';
-import { WaitHelper } from '@helpers/WaitHelper';
 import { EmployeeData } from '@types';
 
 export class EmployeePage extends BasePage {
@@ -46,9 +45,27 @@ export class EmployeePage extends BasePage {
     return data.employeeId;
   }
 
+  private async expandSearchPanel(): Promise<void> {
+    // On mobile the filter panel is collapsed behind a toggle — expand it if needed
+    if (!await this.searchNameInput.isVisible()) {
+      await this.page.locator('.oxd-table-filter-header-options button').click();
+    }
+  }
+
+  private async waitForSearchResults(): Promise<void> {
+    // Mobile uses card layout (no role="row"); wait for any result indicator
+    const rows = this.page.getByRole('row');
+    await Promise.race([
+      rows.first().waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
+      this.noRecordsText.waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
+      this.recordCountText.waitFor({ state: 'visible', timeout: Timeouts.MEDIUM }).catch(() => {}),
+    ]);
+  }
+
   async searchByName(name: string): Promise<void> {
     await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'load' });
     await this.waitForPageLoad();
+    await this.expandSearchPanel();
     await expect(this.searchNameInput).toBeVisible();
     await this.searchNameInput.fill(name);
     await Promise.all([
@@ -58,12 +75,13 @@ export class EmployeePage extends BasePage {
       ),
       this.searchButton.click(),
     ]);
-    await WaitHelper.waitForTableRows(this.page);
+    await this.waitForSearchResults();
   }
 
   async searchById(id: string): Promise<void> {
     await this.page.goto(Routes.EMPLOYEE_LIST, { waitUntil: 'load' });
     await this.waitForPageLoad();
+    await this.expandSearchPanel();
     await expect(this.employeeIdInput).toBeVisible();
     await this.employeeIdInput.fill(id);
     await Promise.all([
@@ -73,7 +91,7 @@ export class EmployeePage extends BasePage {
       ),
       this.searchButton.click(),
     ]);
-    await WaitHelper.waitForTableRows(this.page);
+    await this.waitForSearchResults();
   }
 
   async getSearchResultNames(): Promise<string[]> {
