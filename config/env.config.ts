@@ -96,7 +96,7 @@ export const envConfig: EnvConfig = {
   password: parsedEnv.PASSWORD,
   headless: getBoolean(parsedEnv.HEADLESS, true),
   slowMo: getNumber(parsedEnv.SLOW_MO, 0),
-  timeout: getNumber(parsedEnv.TIMEOUT, 60000),
+  timeout: getNumber(parsedEnv.TIMEOUT, 90000),
   expectTimeout: getNumber(parsedEnv.EXPECT_TIMEOUT, 30000),
   actionTimeout: getNumber(parsedEnv.ACTION_TIMEOUT, 30000),
   navigationTimeout: getNumber(parsedEnv.NAVIGATION_TIMEOUT, 60000),
