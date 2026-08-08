@@ -482,8 +482,19 @@ The smoke, regression, and performance workflows all upload the Allure report as
 a build artifact (`*-allure-report-*.zip`). **Don't double-click `index.html`
 after extracting it** — Allure loads its test data via `fetch()`, which every
 browser blocks for the `file://` protocol, so you'll see a "data could not be
-loaded" error even though the report itself downloaded fine. Serve it over
-HTTP instead:
+loaded" error even though the report itself downloaded fine.
+
+Every artifact now includes a launcher right next to `index.html` — double-click
+that instead:
+
+- **Mac / Linux** → `OPEN-REPORT.command`
+- **Windows** → `OPEN-REPORT.bat`
+
+It starts a local server and opens the report correctly. See `README.txt`
+inside the extracted folder if double-clicking doesn't work (e.g. macOS
+Gatekeeper blocking an unsigned script the first time — right-click → Open).
+
+No launcher handy (e.g. an older artifact)? Serve it manually instead:
 
 ```bash
 # after extracting the zip, from inside that folder:

@@ -99,6 +99,17 @@ jobs:
         if: always()
         run: npm run report:allure
 
+      # Bundle a one-click local-server launcher into the report itself, since
+      # opening index.html directly always fails (Allure loads data via fetch(),
+      # which browsers block on file://) — see scripts/report-launcher/README.txt
+      - name: Add report launcher
+        if: always()
+        run: |
+          if [ -d allure-report ]; then
+            cp scripts/report-launcher/* allure-report/
+            chmod +x allure-report/OPEN-REPORT.command
+          fi
+
       # ── 6. Upload artifacts ───────────────────────────────────────────────────
       - name: Upload Allure report
         if: always()
