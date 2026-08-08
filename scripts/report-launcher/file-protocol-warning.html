@@ -1,0 +1,20 @@
+<script>
+(function () {
+  if (window.location.protocol !== 'file:') return;
+  document.addEventListener('DOMContentLoaded', function () {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:2147483647;background:#1b1e23;color:#f2f2f2;' +
+      'font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:flex;' +
+      'align-items:center;justify-content:center;text-align:center;padding:32px;';
+    overlay.innerHTML =
+      '<div style="max-width:520px">' +
+      '<h1 style="font-size:22px;margin:0 0 14px;">This report can’t open as a file</h1>' +
+      '<p style="margin:0 0 10px;color:#c7c9cc;">Allure reports load their data over a local server — ' +
+      'opening this file directly always shows a blank or broken page, no matter what you click.</p>' +
+      '<p style="margin:0;">In this same folder, double-click <b>OPEN-REPORT.command</b> (Mac/Linux) or ' +
+      '<b>OPEN-REPORT.bat</b> (Windows) instead — it opens this report correctly.</p>' +
+      '</div>';
+    document.body.appendChild(overlay);
+  });
+})();
+</script>
