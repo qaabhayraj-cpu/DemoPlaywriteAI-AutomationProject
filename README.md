@@ -476,6 +476,27 @@ npm run report:open
 npm run report:junit
 ```
 
+### Viewing a Report Downloaded from GitHub Actions
+
+The smoke, regression, and performance workflows all upload the Allure report as
+a build artifact (`*-allure-report-*.zip`). **Don't double-click `index.html`
+after extracting it** — Allure loads its test data via `fetch()`, which every
+browser blocks for the `file://` protocol, so you'll see a "data could not be
+loaded" error even though the report itself downloaded fine. Serve it over
+HTTP instead:
+
+```bash
+# after extracting the zip, from inside that folder:
+python3 -m http.server 8080          # then open http://localhost:8080
+# — or, if you have Node but not Python —
+npx --yes http-server . -p 8080 -o
+```
+
+This isn't specific to this project — it's how every Allure report behaves,
+including the ones generated locally by `npm run report:allure` (which is why
+`npm run report:open` exists — it runs `allure open`, a tiny local server,
+instead of opening the file directly).
+
 ### Flaky Test Analysis
 
 ```bash
