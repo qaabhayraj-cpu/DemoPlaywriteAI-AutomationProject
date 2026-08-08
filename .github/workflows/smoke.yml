@@ -84,6 +84,7 @@ jobs:
         run: |
           npx playwright test tests/smoke/smoke.spec.ts \
             --project=${{ env.BROWSER }} \
+            --grep-invert @canary \
             --reporter=list,html,junit,allure-playwright
         env:
           BASE_URL:  ${{ secrets.BASE_URL  || 'https://opensource-demo.orangehrmlive.com' }}

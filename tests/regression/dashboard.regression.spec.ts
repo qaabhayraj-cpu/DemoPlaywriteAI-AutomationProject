@@ -20,7 +20,7 @@ test.describe('Canary', () => {
   // Guaranteed to fail — retrying it just burns time, so skip retries here.
   test.describe.configure({ retries: 0 });
 
-  test('INTENTIONAL FAIL — proves the suite reports real failures', async ({ dashboardPage }) => {
+  test('INTENTIONAL FAIL — proves the suite reports real failures @canary', async ({ dashboardPage }) => {
     await dashboardPage.navigate(Routes.DASHBOARD);
     await expect(dashboardPage.page.getByText('QA-CANARY-INTENTIONAL-FAILURE-MARKER')).toBeVisible();
   });

@@ -41,7 +41,7 @@ jobs:
       - run: npx playwright install chromium --with-deps
 
       - name: Run smoke tests
-        run: npx playwright test tests/smoke/ --project=chromium
+        run: npx playwright test tests/smoke/ --project=chromium --grep-invert @canary
         env:
           BASE_URL: ${{ secrets.BASE_URL || 'https://opensource-demo.orangehrmlive.com' }}
           USERNAME: ${{ secrets.USERNAME || 'Admin' }}

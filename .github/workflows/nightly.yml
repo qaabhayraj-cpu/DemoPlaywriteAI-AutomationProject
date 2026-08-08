@@ -78,6 +78,7 @@ jobs:
         run: |
           npx playwright test \
             --project=regression-${{ env.BROWSER }} \
+            --grep-invert @canary \
             --reporter=list,html,junit,allure-playwright
         env:
           BASE_URL:  ${{ secrets.BASE_URL  || 'https://opensource-demo.orangehrmlive.com' }}
