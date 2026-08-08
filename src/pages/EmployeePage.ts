@@ -167,8 +167,35 @@ export class EmployeePage extends BasePage {
   }
 
   async clearSearch(): Promise<void> {
-    await this.resetButton.click();
+    await Promise.all([
+      this.page.waitForResponse(
+        (response) => response.url().includes('/web/index.php/api/v2/pim/employees') && response.status() === 200,
+        { timeout: Timeouts.LONG },
+      ),
+      this.resetButton.click(),
+    ]);
     await expect(this.searchNameInput).toHaveValue('');
     await expect(this.employeeIdInput).toHaveValue('');
+    await this.waitForSearchResults();
+  }
+
+  /**
+   * Reproduces the KAN-1 repro steps literally: clear the Employee Name field by hand
+   * (not via the Reset button) and click Search again, without touching any other filter.
+   */
+  async clearNameFieldAndSearchAgain(): Promise<void> {
+    await this.expandSearchPanel();
+    await this.searchNameInput.click();
+    await this.searchNameInput.press('ControlOrMeta+A');
+    await this.searchNameInput.press('Backspace');
+    await expect(this.searchNameInput).toHaveValue('');
+    await Promise.all([
+      this.page.waitForResponse(
+        (response) => response.url().includes('/web/index.php/api/v2/pim/employees') && response.status() === 200,
+        { timeout: Timeouts.LONG },
+      ),
+      this.searchButton.click(),
+    ]);
+    await this.waitForSearchResults();
   }
 }

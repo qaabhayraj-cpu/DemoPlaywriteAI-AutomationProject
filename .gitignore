@@ -17,3 +17,4 @@ jmeter/bin/
 jmeter/results/
 jmeter/reports/
 jmeter.log
+.playwright-mcp/

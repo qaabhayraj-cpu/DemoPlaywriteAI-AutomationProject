@@ -29,6 +29,7 @@
 - [🏗️ Project Structure](#-project-structure)
 - [🚀 Running Tests](#-running-tests)
 - [🔧 Advanced Usage](#-advanced-usage)
+- [🔗 Jira-Integrated QA Workflow](#-jira-integrated-qa-workflow)
 - [🐳 Docker](#-docker)
 - [📝 Contributing](#-contributing)
 - [🆘 Troubleshooting](#-troubleshooting)
@@ -727,6 +728,39 @@ npm run format
 # Check code formatting
 npm run format:check
 ```
+
+---
+
+## 🔗 Jira-Integrated QA Workflow
+
+This framework supports a repeatable **Jira → Playwright → Jira** loop, driven through Claude Code and the Atlassian Remote MCP Server. Give it a ticket key (e.g. `KAN-1`) — or say "continue with KAN-1" — and it processes the ticket end to end without re-explaining the process each time:
+
+1. **Retrieve** the Jira issue — summary, description/acceptance criteria, existing comments. The ticket is the source of truth; nothing about expected behavior is assumed.
+2. **Reuse first** — search existing Page Objects and specs (`src/pages/`, `tests/`) for related coverage and extend it before adding anything new.
+3. **Design scenarios** directly from the ticket's repro steps / expected result, including the negative and edge cases the AC implies.
+4. **Implement** Playwright TypeScript tests named with the ticket ID, e.g. `should show all employees again after clearing search name and searching (KAN-1)`.
+5. **Actually execute** the tests (`npx playwright test <spec> --project=<name>`) plus `npm run typecheck` / `npm run lint` on the changed files — a result is never reported without having been run.
+6. **Classify any failure** as an *Application Defect*, *Automation Defect*, *Environment Issue*, or *Test Data Issue* before deciding what to do about it (see [Notes on the app under test](#notes-on-the-app-under-test) below — this matters a lot for this particular target app).
+7. **Comment back on the ticket** with one structured `QA VALIDATION` block (scope tested, AC-by-AC verdict, execution counts, assessment, recommendation). Existing comments are checked first so results are never posted twice.
+8. **File a Jira Bug only** for a reproducible, confirmed application defect — after searching for an existing duplicate first. No defect, no bug.
+9. **Transition the ticket** (e.g. → *Done*) when asked, and attach supporting evidence — since the MCP toolset here has no native file-attachment call, screenshots are instead embedded in a small self-contained HTML report and linked from a Jira comment.
+
+### Prerequisites
+
+- The **Atlassian Remote MCP Server** connected in Claude Code, scoped to the Jira site with `read:jira-work` / `write:jira-work`. This is configured at the Claude Code / IDE level — there's nothing to install in this repo, and no Jira credentials are ever stored here.
+
+### Example
+
+```
+continue with KAN-1
+```
+
+Claude Code looks up `KAN-1`, reuses `EmployeePage` / `tests/employee/*`, extends the relevant spec with a `(KAN-1)`-tagged test, runs it, and posts the QA validation comment — the same flow works unchanged for `KAN-2`, `KAN-3`, etc.
+
+### Notes on the app under test
+
+- `opensource-demo.orangehrmlive.com` is a **shared public demo instance** — its employee record count fluctuates significantly from concurrent global test traffic (observed swinging between roughly 2 and 640 records within minutes in a single session). Treat sudden count changes as environment noise, not a product defect: prefer state-transition assertions (`No Records Found` → results present) over exact record counts when writing tests against this data, and rerun before concluding a genuine regression.
+- Manual reproduction against the live app (via the Playwright MCP browser tools) before trusting or writing a test is cheap and catches false positives early — see [`EmployeePage.clearNameFieldAndSearchAgain()`](src/pages/EmployeePage.ts) for an example of a scenario that was hand-verified live before being automated.
 
 ---
 
