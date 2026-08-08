@@ -25,7 +25,7 @@ export class LeavePage extends BasePage {
   }
 
   async navigateToApply(): Promise<void> {
-    await this.page.goto(Routes.LEAVE_APPLY, { waitUntil: 'load' });
+    await this.gotoWithRecovery(Routes.LEAVE_APPLY);
     await this.page.locator('.oxd-form-loader').waitFor({ state: 'hidden', timeout: Timeouts.EXTRA_LONG }).catch(() => {});
     // Page is ready when either the leave type select (normal) or the no-balance notice appears.
     // Use Promise.race so either condition resolves the wait regardless of element type.

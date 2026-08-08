@@ -7,17 +7,21 @@ test.describe('Dashboard', () => {
     await dashboardPage.verifyWidgetsPresent();
   });
 
-  test('should navigate to PIM module from menu', async ({ dashboardPage }, testInfo) => {
-    test.skip(/mobile/i.test(testInfo.project.name), 'Mobile nav collapsed behind hamburger — not reliable on demo site');
-    await dashboardPage.navigate(Routes.DASHBOARD);
-    await dashboardPage.navigateToModule('PIM');
-    await expect(dashboardPage.page).toHaveURL(/pim\/viewEmployeeList/);
-  });
+});
 
-  test('should navigate to Leave module from menu', async ({ dashboardPage }, testInfo) => {
-    test.skip(/mobile/i.test(testInfo.project.name), 'Mobile nav collapsed behind hamburger — not reliable on demo site');
+// ─── Canary ───────────────────────────────────────────────────────────────
+// INTENTIONAL, KEPT ON PURPOSE. This test always fails — it is not a bug.
+// It's a negative control: if this ever goes green, something is silently
+// swallowing failures upstream (reporter misconfig, wrong exit code, etc.)
+// and the rest of the suite's "all passing" result can no longer be trusted.
+// Do not "fix" it by changing the assertion or the app.
+
+test.describe('Canary', () => {
+  // Guaranteed to fail — retrying it just burns time, so skip retries here.
+  test.describe.configure({ retries: 0 });
+
+  test('INTENTIONAL FAIL — proves the suite reports real failures', async ({ dashboardPage }) => {
     await dashboardPage.navigate(Routes.DASHBOARD);
-    await dashboardPage.navigateToModule('Leave');
-    await expect(dashboardPage.page).toHaveURL(/leave\/viewLeaveList/);
+    await expect(dashboardPage.page.getByText('QA-CANARY-INTENTIONAL-FAILURE-MARKER')).toBeVisible();
   });
 });

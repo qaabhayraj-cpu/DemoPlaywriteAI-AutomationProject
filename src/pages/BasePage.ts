@@ -1,7 +1,9 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, Locator, Page } from '@playwright/test';
 import { Timeouts } from '@constants/Timeouts';
+import { Routes } from '@constants/Routes';
 import { WaitHelper } from '@helpers/WaitHelper';
+import { envConfig } from '@config';
 
 export abstract class BasePage {
   readonly page: Page;
@@ -11,8 +13,56 @@ export abstract class BasePage {
   }
 
   async navigate(path: string): Promise<void> {
-    await this.page.goto(path, { waitUntil: 'load', timeout: Timeouts.EXTRA_LONG });
+    await this.gotoWithRecovery(path);
     await this.waitForPageLoad();
+  }
+
+  /**
+   * Navigate with one automatic recovery attempt.
+   *
+   * The shared public demo host (opensource-demo.orangehrmlive.com) occasionally:
+   *  a) fails the navigation outright (e.g. net::ERR_HTTP_RESPONSE_CODE_FAILURE), or
+   *  b) resolves the session to a different demo persona that renders a
+   *     "403 Module Forbidden" page instead of the requested module.
+   * Neither is a defect in the app under test or in this suite — it's session
+   * pooling on a shared, publicly-hammered demo instance. Re-authenticating and
+   * retrying once absorbs that noise so real assertions aren't drowned out by it.
+   */
+  protected async gotoWithRecovery(path: string): Promise<void> {
+    try {
+      await this.page.goto(path, { waitUntil: 'load', timeout: Timeouts.EXTRA_LONG });
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn(`⚠️  Navigation to ${path} failed (${(error as Error).message}) — retrying once`);
+      // If the login page itself is what failed to load, re-authenticating would just
+      // repeat the same navigation — skip straight to a plain retry.
+      if (path !== Routes.LOGIN) {
+        await this.reauthenticate();
+      }
+      await this.page.goto(path, { waitUntil: 'load', timeout: Timeouts.EXTRA_LONG });
+      return;
+    }
+
+    if (await this.isAccessForbidden()) {
+      // eslint-disable-next-line no-console
+      console.warn(`⚠️  ${path} rendered "Module Forbidden" — session resolved to the wrong persona; re-authenticating and retrying once`);
+      await this.reauthenticate();
+      await this.page.goto(path, { waitUntil: 'load', timeout: Timeouts.EXTRA_LONG });
+    }
+  }
+
+  private async isAccessForbidden(): Promise<boolean> {
+    return this.page.getByText('Module Forbidden').isVisible({ timeout: 1000 }).catch(() => false);
+  }
+
+  private async reauthenticate(): Promise<void> {
+    await this.page.goto(Routes.LOGIN, { waitUntil: 'load', timeout: Timeouts.EXTRA_LONG });
+    await this.page.getByPlaceholder('Username').fill(envConfig.username);
+    await this.page.getByPlaceholder('Password').fill(envConfig.password);
+    await Promise.all([
+      this.page.waitForURL('**/dashboard/index', { timeout: Timeouts.EXTRA_LONG }),
+      this.page.getByRole('button', { name: 'Login' }).click(),
+    ]);
   }
 
   async waitForPageLoad(): Promise<void> {
