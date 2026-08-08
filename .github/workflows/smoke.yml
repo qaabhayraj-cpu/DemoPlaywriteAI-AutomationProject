@@ -2,11 +2,11 @@ name: Smoke Tests — Daily 12:25 PM IST
 
 # ── Triggers ──────────────────────────────────────────────────────────────────
 on:
-  # Run on every push to main (and PRs targeting main)
+  # Run on every push to main or develop (and PRs targeting either)
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
   # Daily at 12:25 PM IST (06:55 UTC)
   schedule:
