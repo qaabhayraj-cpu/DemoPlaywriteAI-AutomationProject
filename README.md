@@ -480,34 +480,17 @@ npm run report:junit
 ### Viewing a Report Downloaded from GitHub Actions
 
 The smoke, regression, and performance workflows all upload the Allure report as
-a build artifact (`*-allure-report-*.zip`). **Don't double-click `index.html`
-after extracting it** — Allure loads its test data via `fetch()`, which every
-browser blocks for the `file://` protocol, so you'll see a "data could not be
-loaded" error even though the report itself downloaded fine.
+a build artifact (`*-allure-report-*.zip`). Reports are generated in
+**single-file mode** (`allure generate --single-file`), so the whole report —
+data included — is embedded directly into `index.html`. Just extract the zip
+and double-click `index.html`; it opens straight in your browser, no local
+server or launcher script needed.
 
-Every artifact now includes a launcher right next to `index.html` — double-click
-that instead:
-
-- **Mac / Linux** → `OPEN-REPORT.command`
-- **Windows** → `OPEN-REPORT.bat`
-
-It starts a local server and opens the report correctly. See `README.txt`
-inside the extracted folder if double-clicking doesn't work (e.g. macOS
-Gatekeeper blocking an unsigned script the first time — right-click → Open).
-
-No launcher handy (e.g. an older artifact)? Serve it manually instead:
-
-```bash
-# after extracting the zip, from inside that folder:
-python3 -m http.server 8080          # then open http://localhost:8080
-# — or, if you have Node but not Python —
-npx --yes http-server . -p 8080 -o
-```
-
-This isn't specific to this project — it's how every Allure report behaves,
-including the ones generated locally by `npm run report:allure` (which is why
-`npm run report:open` exists — it runs `allure open`, a tiny local server,
-instead of opening the file directly).
+(Older artifacts from before this change were split across `index.html` +
+separate data files, which browsers block from loading over the `file://`
+protocol. If you ever land on one of those, serve it instead of opening it
+directly: `python3 -m http.server 8080` from inside the extracted folder, then
+open `http://localhost:8080`.)
 
 ### Flaky Test Analysis
 

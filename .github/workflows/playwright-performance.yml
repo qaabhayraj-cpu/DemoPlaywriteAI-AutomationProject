@@ -82,19 +82,6 @@ jobs:
         if: always()
         run: npm run report:allure
 
-      # Bundle a one-click local-server launcher into the report itself, and inject
-      # a warning that fires if index.html is still opened directly — opening it
-      # always fails (Allure loads data via fetch(), which browsers block on
-      # file://) — see scripts/report-launcher/README.txt
-      - name: Add report launcher
-        if: always()
-        run: |
-          if [ -d allure-report ]; then
-            cp scripts/report-launcher/OPEN-REPORT.command scripts/report-launcher/OPEN-REPORT.bat scripts/report-launcher/README.txt allure-report/
-            chmod +x allure-report/OPEN-REPORT.command
-            python3 scripts/inject-report-warning.py allure-report/index.html
-          fi
-
       # ── 6. Upload artifacts ───────────────────────────────────────────────────
       - name: Upload Allure report
         if: always()
