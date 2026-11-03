@@ -44,7 +44,7 @@ env:
 jobs:
   full-regression:
     name: Regression — ${{ inputs.browser || 'chromium' }} (${{ inputs.env || 'qa' }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
